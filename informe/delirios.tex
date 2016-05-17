@@ -1,0 +1,23 @@
+\section{Introducción}
+DeliriOS es un exokernel bare-metal cuyo objetivo es proveer una base de desarrollo para programas donde ocurren muchas operaciones de sincronización entre threads.
+
+El objetivo original de este trabajo era implementar, sobre el trabajo de Sebastián Nale y Julián Pinelli, el módulo de escritura para ext2.
+Luego, el trabajo derivó en otros asuntos que fueron resualtos, como el diseño de la API de IO de DeliriOS (hecho en conjunto con Sebastián y Julián) y la refactorización del driver para discos rígidos (IDE) y la detección de dispositivos PCI (requerida para la refactorización del driver).
+
+Todos los objetivos fueron cumplidos, y el objetivo de este trabajo es explicarlos, documentarlos y exhibir resultados generales sobre l
+\newpage
+
+\section{DeliriOS}
+
+\subsection{Trabajo previo}
+\begin{enumerate}
+  \item Trabajo de noit y Goldsmith.
+\end{enumerate}
+
+\subsection{Motivación de este trabajo}
+
+\begin{enumerate}
+  \item Por qué un filesystem
+  \item Por qué ext2.
+\end{enumerate}
+
