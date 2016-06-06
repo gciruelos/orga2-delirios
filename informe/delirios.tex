@@ -2,22 +2,41 @@
 DeliriOS es un exokernel bare-metal cuyo objetivo es proveer una base de desarrollo para programas donde ocurren muchas operaciones de sincronización entre threads.
 
 El objetivo original de este trabajo era implementar, sobre el trabajo de Sebastián Nale y Julián Pinelli, el módulo de escritura para ext2.
-Luego, el trabajo derivó en otros asuntos que fueron resualtos, como el diseño de la API de IO de DeliriOS (hecho en conjunto con Sebastián y Julián) y la refactorización del driver para discos rígidos (IDE) y la detección de dispositivos PCI (requerida para la refactorización del driver).
+Luego, el trabajo derivó en otros asuntos que fueron resueltos, como el diseño de la API de IO de DeliriOS (hecho en conjunto con Sebastián y Julián) y la refactorización del driver para discos rígidos (IDE) y la detección de dispositivos PCI (requerida para la refactorización del driver).
 
-Todos los objetivos fueron cumplidos, y el objetivo de este trabajo es explicarlos, documentarlos y exhibir resultados generales sobre l
+Todos los objetivos fueron cumplidos, y el objetivo de este trabajo es explicarlos, documentarlos y exhibir resultados generales sobre los módulos implementados.
 \newpage
 
 \section{DeliriOS}
 
 \subsection{Trabajo previo}
-\begin{enumerate}
+\begin{puntos}
   \item Trabajo de noit y Goldsmith.
-\end{enumerate}
+\end{puntos}
+
+
 
 \subsection{Motivación de este trabajo}
 
-\begin{enumerate}
+\begin{puntos}
   \item Por qué un filesystem
   \item Por qué ext2.
-\end{enumerate}
+\end{puntos}
+
+Para poder ejecutar programas que analizan datos utilizando DeliriOS, necesitamos poder leer y escribir datos en un dispositivo de memoria no volátil, por ejemplo, un disco rígido (o discos de estado sólido).
+
+La información dentro de un dispositivo de almacenamiento se organiza utilizando una especificación conocida como \emph{filesystem} o sistema de archivos. 
+
+Las principales funciones de un sistema de archivos son la asignación de espacio a los archivos, la administración del espacio libre y del acceso a los datos guardados.
+Los sistemas de archivos determinan la estructura de la información guardada en el dispositivo de almacenamiento.
+
+Los sistemas de archivos son muy variados, pero todos pueden ser clasificados en unas pocas familias.
+Una de esas familias es conocida como sistema de archivo basado en \emph{inodos}. Entre ellos se encuentra el sistema de archivos \emph{ext2}, que es el implementado en este trabajo.
+
+Elegimos ext2 porque, desde nuestro punto de vista, es el balance ideal entre facilidad de implementación y \emph{features}.
+
+En el extremo de la facilidad de implementación se encuentran sistemas de archivos como \emph{FAT}, pero su velocidad y sus prestaciones son muy pobres.
+En el otro extremo se encuentran sistemas de archivos como \emph{ZFS} o \emph{ext4}, que son muy rápidos y tienen muchas prestaciones, pero son difíciles de implementar, en comparación con ext2.
+Sin embargo, debe tenerse en cuenta que ext4 es una mera extensión (de hecho compatible hacia atrás) con ext2, con lo cual nuestra implementación puede extenderse a ext4 en caso de desearse.
+
 

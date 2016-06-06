@@ -1,4 +1,13 @@
-informe:
+IMGS = img/block_structure.pdf
+
+img/%.pdf: img/%.svg
+	inkscape -D -z --file=$< --export-pdf=$@ --export-latex
+
+informe: $(IMGS)
+	pdflatex informe.tex
+	pdflatex informe.tex
+	bibtex informe
+	pdflatex informe.tex
 	pdflatex informe.tex
 
 clean:
@@ -12,4 +21,4 @@ clean:
 	rm -f *.bbl
 	rm -f informe-blx.bib
 	rm -f *.toc
-	rm -f *.pdf
+	rm -f *.pdf img/*.pdf

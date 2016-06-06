@@ -14,9 +14,11 @@
 \usepackage{algorithm}
 \usepackage[noend]{algpseudocode}
 \usepackage{array}
-\usepackage{xcolor,colortbl}
+\usepackage[dvipsnames]{xcolor,colortbl}
 \usepackage{amsthm}
 \usepackage{listings}
+% Si no esta esto se rompe todo: http://tex.stackexchange.com/questions/202614
+\lccode`~=0
 \usepackage{soul}
 \usepackage{mathpazo}
 
@@ -28,13 +30,34 @@
 \usepackage{wrapfig}
 \usepackage{caption}
 
-%Grafos
-\usepackage{tkz-berge} %Como Tikz pero más orientado a graph theory 
-\usetikzlibrary{3d,arrows,automata}
-\newcommand\pgfmathsinandcos[3]{% 
-  \pgfmathsetmacro#1{sin(#3)}% 
-  \pgfmathsetmacro#2{cos(#3)}% 
+\lstdefinestyle{customc}{
+  belowcaptionskip=1\baselineskip,
+  breaklines=true,
+  xleftmargin=\parindent,
+  language=C,
+  morekeywords={
+    int8_t, int16_t, int32_t, int64_t,
+    uint8_t, uint16_t, uint32_t, uint64_t,
+    dir_entry
+  },
+  showstringspaces=false,
+  basicstyle=\footnotesize\ttfamily,
+  keywordstyle=\bfseries\color{blue!40!black},
+  commentstyle=\itshape\color{purple!40!black},
+  identifierstyle=\color{black},
+  stringstyle=\color{orange},
 }
+
+\lstdefinestyle{customasm}{
+  belowcaptionskip=1\baselineskip,
+  frame=L,
+  xleftmargin=\parindent,
+  language=[x86masm]Assembler,
+  basicstyle=\footnotesize\ttfamily,
+  commentstyle=\itshape\color{purple!40!black},
+}
+
+
 
 %Formato de los links
 \usepackage{hyperref}
@@ -72,6 +95,13 @@
 \renewcommand{\footrulewidth}{0.4pt}
 \renewcommand{\labelitemi}{$\bullet$}
 
+\newenvironment{puntos}{%
+    \itemize
+    \color{Red}
+}{%
+    \enditemize
+}
+
 %%caratula
 \materia{Organización del Computador II}
 \titulo{Trabajo Práctico Final}
@@ -101,6 +131,11 @@
 
 \input{conclusiones.tex}
 \newpage
+
+% si se descomenta esto, aparecen todas las cosas de la bibliografia, hasta
+% las que nunca fueron citadas en el TP. es una eleccion de diseño.
+\nocite{*}
+\printbibliography
 
 \end{document}
 

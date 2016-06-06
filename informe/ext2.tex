@@ -1,21 +1,120 @@
 \section{ext2}
 
 \subsection{El sistema de archivos ext2}
-\begin{enumerate}
+\begin{puntos}
   \item Historia e idea general de ext2.
   \item Descripcion detallada de ext2.
+\end{puntos}
+
+\subsection{Historia de ext2}
+
+Como dijimos anteriormente, ext2 es un filesystem basado en inodos. Los sistemas basados en inodos (explicaremos qué son los inodos más adelante) fueron creados para el sistema operativo UNIX, y son usados por todos sus descendientes.
+
+El sistema ext2 (por \emph{second extended}) es un sistema de archivos diseñado e implementado para ser usado por el kernel de Linux. Fue inicialmente diseñado por Rémy Card como un reemplazo para el \emph{extended filesystem} (ext).
+
+La implementación canónica de ext2 es el driver \emph{ext2fs} del kernel de Linux. Otras implementaciones existen en GNU Hurd, MINIX 3, y kernels de BSD.
+
+ext2 fue el sistema de archivos por defecto en varias distribuciones de Linux, hasta que fue suplantado más tarde por ext3, que es un sistema de archivos con \emph{journaling}.
+ext2 es aún hoy el sistema de archivos de elección para dispositivos de almacenamiento flash, dado que su falta de \emph{journal} mejora la performance y minimiza la cantidad de escrituras. 
+
+
+Como ext2 fue diseñado e implementado para Linux, carece de una especificación canónica, por lo que esto dificulta la implementación de cero.
+
+\subsection{Descripcion detallada de ext2}
+
+El sistema de archivos ext2 usa:
+\begin{enumerate}
+  \item bloques unidad básica de almacenamiento,
+  \item inodos como medio de tener registro de archivos y objetos de ext2,
+  \item  grupos de bloques para dividir lógicamente el disco en secciones más manejables,
+  \item directorios para proporcionar una organización jerárquica de archivos,
+  \item bitmaps de bloques e inodos para tener registro de bloques e inodos reservados,
+  \item superbloques para definir los parámetros del sistema de archivo y su estado general.
 \end{enumerate}
+
+\subsubsection{Bloques}
+Una partición o disco formateada con el sistema de archivos ext2 está dividida en pequeños grupos de sectores llamados \emph{bloques}. Estos bloques están agrupados, además, en unidades más grandes llamadas grupos de bloques.
+
+El tamaño del bloque se determina cuando se formatea el disco y tiene impacto en la performance, el máximo tamaño de archivo posible y el máximo tamaño del sistema de archivos. Los tamaños de bloques más comunes son 1KiB, 2KiB, 4KiB and 8KiB, aunque los últimos 2 son los más usados en el último tiempo, dado el gran tamaño de los discos actuales.
+
+\subsubsection{Grupos de bloques}
+
+Los bloques se agrupan en grupos de bloques para reducir la fragmentación y minimizar la cantidad de movimientos del cabezal del disco cuando se lee una gran cantidad de datos consecutivos. La información sobre cada grupo se almacena en una tabla de descriptores que se encuentra en los bloques inmediatamente después del superbloque. 
+
+Blocks are clustered into block groups in order to reduce fragmentation and minimise the amount of head seeking when reading a large amount of consecutive data. Information about each block group is kept in a descriptor table stored in the block(s) immediately after the superblock. Two blocks near the start of each group are reserved for the block usage bitmap and the inode usage bitmap which show which blocks and inodes are in use. Since each bitmap is limited to a single block, this means that the maximum size of a block group is 8 times the size of a block.
+
+The block(s) following the bitmaps in each block group are designated as the inode table for that block group and the remainder are the data blocks. The block allocation algorithm attempts to allocate data blocks in the same block group as the inode which contains them.
+
+
+
+
+
 
 \subsection{Otras implementaciones}
-\begin{enumerate}
+\begin{puntos}
   \item Breve descripción de como otros sistemas operativos resolvieron el problema de los filesystems en general y ext2 en particular.
-\end{enumerate}
+\end{puntos}
+
+
 
 \subsection{Nuestra implementación}
-\begin{enumerate}
+\begin{puntos}
   \item Descripción de la API de IO de delirios.
   \item Overview general de la implementación.
   \item Descripción detallada, funcion por funcion de la implementacion.
   \item Como testeamos, unit testing y testing e2e.
-\end{enumerate}
+\end{puntos}
+
+Como dijimos anteriormente, ext2 carece de una especificación clara y canónica.
+Todas las implementaciones de ext2 parten de analizar el código de la implementación de Linux e imitarlo.
+Sin embargo, existe una documentación no oficial, escrita por Dave Poirier, que es en la que nos basamos para realizar este trabajo \cite{ext2doc}.
+
+\subsubsection{Descripción de la API de IO de DeliriOS}
+
+Primero comencemos describiendo la API de IO de DeliriOS, dado que esto nos va a permitir motivar y explicar todas las funciones de ext2 que implementamos.
+
+
+\begin{lstlisting}[style=customc]
+int64_t read(int64_t fd, void *buf, uint64_t count);
+\end{lstlisting}
+\begin{lstlisting}[style=customc]
+int64_t write(int64_t fd, const void *buf, uint64_t count);
+\end{lstlisting}
+\begin{lstlisting}[style=customc]
+int64_t seek(int64_t fd, int64_t offset, int64_t origin);
+\end{lstlisting}
+\begin{lstlisting}[style=customc]
+int64_t tell(int64_t fd);
+\end{lstlisting}
+\begin{lstlisting}[style=customc]
+uint8_t type(const char *path);
+\end{lstlisting}
+\begin{lstlisting}[style=customc]
+int64_t create(const char *path, uint8_t filetype);
+\end{lstlisting}
+\begin{lstlisting}[style=customc]
+int64_t remove(const char *path); 
+\end{lstlisting}
+\begin{lstlisting}[style=customc]
+int64_t truncate(int64_t fd, uint64_t length);
+\end{lstlisting}
+\begin{lstlisting}[style=customc]
+int64_t open(const char *path);
+\end{lstlisting}
+\begin{lstlisting}[style=customc]
+int64_t close(int64_t fd);
+\end{lstlisting}
+\begin{lstlisting}[style=customc]
+int64_t opendir(const char *path);
+\end{lstlisting}
+\begin{lstlisting}[style=customc]
+int64_t closedir(int64_t dd);
+\end{lstlisting}
+\begin{lstlisting}[style=customc]
+int64_t rewinddir(int64_t dd);
+\end{lstlisting}
+\begin{lstlisting}[style=customc]
+dir_entry * readdir(int64_t dd);
+\end{lstlisting}
+
 
