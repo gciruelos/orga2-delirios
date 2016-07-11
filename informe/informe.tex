@@ -1,5 +1,5 @@
-\documentclass[hidelinks,a4paper,12pt, nofootinbib]{article}
-\usepackage[a4paper, left=3cm, top=3cm, right=2cm, bottom=2cm]{geometry}
+\documentclass[hidelinks,a4paper,12pt, nofootinbib]{report}
+\usepackage{geometry}
 \usepackage[spanish, es-tabla]{babel} %es-tabla es para que ponga Tabla en vez de Cuadro en el caption
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -30,6 +30,27 @@
 \usepackage{wrapfig}
 \usepackage{caption}
 
+\lstdefinestyle{customcmucho}{
+  belowcaptionskip=1\baselineskip,
+  breaklines=true,
+  xleftmargin=\parindent,
+  language=C,
+  morekeywords={
+    int8_t, int16_t, int32_t, int64_t,
+    uint8_t, uint16_t, uint32_t, uint64_t,
+    dir_entry
+  },
+  showstringspaces=false,
+  basicstyle=\footnotesize\ttfamily,
+  keywordstyle=\bfseries\color{blue!40!black},
+  commentstyle=\itshape\color{purple!40!black},
+  identifierstyle=\color{black},
+  stringstyle=\color{orange},
+  backgroundcolor=\color{lightgray},
+  numbers=left
+}
+
+
 \lstdefinestyle{customc}{
   belowcaptionskip=1\baselineskip,
   breaklines=true,
@@ -46,6 +67,7 @@
   commentstyle=\itshape\color{purple!40!black},
   identifierstyle=\color{black},
   stringstyle=\color{orange},
+  backgroundcolor=\color{lightgray},
 }
 
 \lstdefinestyle{customasm}{
@@ -110,6 +132,8 @@
 
 \usepackage{etoolbox}
 \AtBeginEnvironment{tikzpicture}{\shorthandoff{>}\shorthandoff{<}}{}{}
+\newcommand{\sectionbreak}{\clearpage}
+
 
 \begin{document}
 \maketitle
