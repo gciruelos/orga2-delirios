@@ -1,15 +1,269 @@
 \chapter{Dispositivos}
 
 \section{PCI}
-\begin{enumerate}
-  \item Breve descripcion de PCI.
-  \item Como detectar dispositivos PCI.
-  \item Como lo hicimos en delirios.
-\end{enumerate}
 
-\section{HDD IDE}
+El bus PCI (Peripheral Component Interconnect) fue definido para establecer un bus local de alta performance y bajo costo que durara varias generaciones de productos.
+Combinando un camino transparente de mejoras desde 132 MB/s (32-bit a 33MHz) hasta 528 MB/s (64-bit a 66MHz) y ambientes de señalización tanto de 5V como de 3.3V, el bus PCI satiface las necesidades tanto de computadoras de escritorio de bajo costo como de servidores LAN de alto costo.
+El bus PCI es independiente del procesador, lo cual permite una transición eficiente a futuros procesadores, además de poder usar diferentes arquitecturas de procesadores.
+
+Las desventajas del bus PCI es que es la limitada cantidad de cargas eléctricas que puede conducir. Un único bus PCI puede conducir un máximo de 10 cargas. (Recordemos que cuando contamos la cantidad de cargas de un bus, un conector cuenta como una carga y el dispositivo PCI cuenta como una carga, o a veces dos).
+
+Cualquier sistema operativo que se precie de serlo debe poder detectar que dispositivos están conectados a la computadora. Por esta razón, decidimos implementar un brevisimo identificador de dispositivos PCI.
+
+Este es un paso vital para trabajar en el futuro con cualquier tipo de dispositivo, por ejemplo USB o Ethernet.
+
+\subsection{Cómo detectar dispositivos PCI}
+
+La especificación del bus PCI nos provee de un sistema de inicialización y configuración que puede realizarse totalmente por software via un espacio de direcciones de configuración separado para cada dispositivo en el bus PCI.
+
+Todos los dispositivos PCI, excepto el host bridge, están obligados a proveer 256 bytes de registros de configuración para ese propósito
+
+Los ciclos de configuración de los ciclos de lectura y escritura son usados para acceder al espacio de configuración de cada dispositivo objetivo. El objetivo es seleccionado enviando una señal ISDEL al host bridge. La señal ISDEL actua como la clásica señal "chip select". Durante la fase de direcciones del ciclo de configuración, el procesador puede direccionar alguno de los 64 registros de 32-bits dentro del espacio de configuración del dispositivo, simplemente escribiendo el número de registro requerido en las lineas de direcciones 2 a 7 (AD[7..2]) y las lineas de byte enable.
+
+Los dispositivos PCI son inherentemente little endian, lo que significa que todos los campos de más de un byte tienen los valores menos significativos en las direcciones más bajas. Esto requiere que cuando se programa un procesador big-endian, como un Power PC, se hagan las operaciones apropiadas de byte-swapping al leer y escribir de la memoria del dispositivo. Sin embargo, como DeliriOS es un sistema operativo para arquitectura AMD64, que es little-endian, nada de esto nos interesará.
+
+
+\subsection{Detección de dispositivos PCI en DeliriOS}
+
+La función principal del módulo PCI (llamada en kernel.c, durante la inicialización del sistema) es la siguiente.
+
+\begin{lstlisting}[style=customcmucho]
+void pci_check_buses(void) {
+     uint8_t header_type = pci_read_config(get_device(0, 0, 0), HEADER_TYPE);
+     if ((header_type & 0x80) == 0){
+         // Un solo PCI host controller
+         check_bus(0);
+     } else {
+         // Multiples PCI host controllers. Tengo que chequear las funciones
+         // (0, 0, f) . Si esta up, quiere decir que hay un host controller ahi
+         for (uint8_t function = 0; function < 8; function++) {
+             if (pci_read_config(get_device(0, 0, function), VENDOR_ID) != 0xFFFF)
+                 break;
+             check_bus(function);
+         }
+     }
+}
+\end{lstlisting}
+
+Primero nos fijamos cuantos PCI host controllers hay. En caso de que sea uno solo, chequeo el bus 0. En caso de que sean muchos, tengo que chequear la función de cada bus, porque si está UP quiere decir que ahi hay un host controller.
+
+
+Pasemos a ver el resto de las funciones. 
+
+\begin{lstlisting}[style=customcmucho]
+static inline uint16_t get_device(uint16_t bus, uint16_t slot, uint16_t func){
+    return ((bus << 8) | (slot << 3) | func);
+}
+\end{lstlisting}
+
+Esta función nos permite generar el código de un dispositivo, dado su bus, función y slot.
+
+
+\begin{lstlisting}[style=customcmucho]
+uint32_t pci_read_config(uint16_t device, uint16_t field_and_size){
+    // Armo el pedido para informacion del dispositivo
+    uint8_t field = field_and_size >> 8;
+    uint8_t size  = field_and_size & 0x00ff;
+
+    uint32_t address = ((uint32_t) ((device << 8) | (field & 0xfc))) 
+                       | 0x80000000;
+ 
+    // Pido esa entrada de la informacion del dispositivo
+    outl(0xCF8, address);
+
+   	if (size == 4) {
+		uint32_t t = inl(0xCFC);
+		return t;
+	} else if (size == 2) {
+		uint16_t t = inw(0xCFC + (field & 2));
+		return t;
+	} else if (size == 1) {
+		uint8_t t = inb(0xCFC + (field & 3));
+		return t;
+	} 
+    return 0xFFFF;
+}
+\end{lstlisting}
+
+Esta función nos permite leer un field del espacio de configuración de un dispositivo. Field and size es un parámetro que contiene tanto el field como el tamaño de ese field.
+
+Para leer el field, utilizamos dos puertos de 32-bits. El primero es 0xCF8, que se llama CONFIG\_ADDRESS, y el segundo es 0xCFC, que se llama CONFIG\_DATA. CONFIG\_ADDRESS especifica la dirección del espacio de configuración que vamos a querer acceder, mientras que escrituras sucesivas a CONFIG\_DATA van a hacer generar el acceso al espacio de configuración del dispositivo PCI.
+
+\begin{lstlisting}[style=customcmucho]
+static char * lookup_device(uint8_t class, uint8_t subclass){
+    for(uint64_t i = 0; i < DEVICE_CLASSES; i++){
+        if(device_info[i].class == class && device_info[i].subclass == subclass)
+            return device_info[i].info;
+    }
+    return device_info[DEVICE_CLASSES - 1].info;
+}
+\end{lstlisting}
+
+Esta función se ocupa de, dada una clase y una sublcase, devolver un string que contiene una descripción del dispositivo (en inglés). La tabla se encuentra al final de esta sección.
+
+
+Las funciones que siguen son todas las funciones que usa pci\_check\_buses para probar todas las combinaciones posibles de slot, funcion y bus.
+
+\begin{lstlisting}[style=customcmucho]
+static void check_slot(uint8_t bus, uint8_t slot) {
+     uint16_t device = get_device(bus, slot, 0);
+ 
+     if (pci_read_config(device, VENDOR_ID) == 0xFFFF)
+         return; // No existe el dispositivo
+     check_function(device);
+     uint8_t header_type = pci_read_config(device, HEADER_TYPE);
+
+     if ((header_type & 0x80) != 0){
+         // Es un dispositivo multifuncion, 
+         // entonces chequeamos todas las funciones
+         for(uint8_t function = 1; function < 8; function++) {
+             uint16_t device = get_device(bus, slot, function);
+             
+             if(pci_read_config(device, VENDOR_ID) != 0xFFFF)
+                 check_function(device);
+         }
+     } 
+}
+\end{lstlisting}
+
+\begin{lstlisting}[style=customcmucho]
+static void check_bus(uint8_t bus) { 
+     for (uint8_t slot = 0; slot < 32; slot++)
+         check_slot(bus, slot);
+}
+\end{lstlisting}
+
+La función que sigue es la más complicada de las tres, dado que es la última, por lo tanto la que hace todo el trabajo. Aquí es donde confirmamos la existencia del dispositivo, y donde imprimimos a salida estándar una descripción de él.
+
+En caso de que el dispositivo sea un disco IDE, lo inicializamos con la funcion ide\_init, que analizaremos en la siguiente sección.
+
+\begin{lstlisting}[style=customcmucho]
+void check_function(uint16_t device) {
+     uint8_t class = pci_read_config(device, CLASS);
+     uint8_t subclass = pci_read_config(device, SUBCLASS);
+     uint16_t device_id = pci_read_config(device, DEVICE_ID);
+     uint16_t vendor_id = pci_read_config(device, VENDOR_ID);
+     uint8_t prog_if = pci_read_config(device, PROG_IF);
+     uint8_t irq = pci_read_config(device, PROG_IF);
+
+     pci_devices[next_pci_device++] = (struct pci_device) 
+                                      {device_id, vendor_id, class, 
+                                       subclass, prog_if, irq};
+
+     // Imprimo toda la inforamcion sobre el dispositivo
+     printf("  (PCI DEVICE) (%d,%d,%d)\t", 
+             device >> 8, (device >> 3) & 31, device & 3);
+
+     char* info = lookup_device(class, subclass);
+     if (info)
+         printf(info);
+     else
+         printf("0x%x 0x%x", class, subclass);
+
+     printf(" - [0x%x 0x%x]\n", vendor_id, device_id);
+     // Aca termino de imprimir la informacion sobre el dispositivo
+     // Y procedo a registrarlo como corresponda
+     
+     if (class == 0x06 && subclass == 0x04)
+         check_bus(pci_read_config(device, SECONDARY_BUS));
+     if (class == 0x01 && subclass == 0x01){
+         ide_init(pci_read_config(device, BAR0),
+                  pci_read_config(device, BAR1),
+                  pci_read_config(device, BAR2),
+                  pci_read_config(device, BAR3),
+                  pci_read_config(device, BAR4));
+     }
+}
+\end{lstlisting}
+
+
+Por último, veamos la lista de información de dispositivos que tenemos, que nos va a servir para saber que es un dispositivo dada su clase y sublase.
+
+\begin{lstlisting}[style=customcmucho]
+static struct class_info device_info[] = {
+    {0x01, 0x01, "IDE Controller"},
+    {0x01, 0x05, "ATA Controller"},
+    {0x01, 0x06, "Serial ATA"},
+    {0x02, 0x00, "Ethernet Controller"},
+    {0x03, 0x00, "VGA-Compatible Controller"},
+    {0x06, 0x00, "Host Bridge"},
+    {0x06, 0x01, "ISA Bridge"},
+    {0x06, 0x80, "Other Host Device"},
+    {0x0C, 0x03, "USB Controller"},
+    {0xFF, 0x00, NULL},
+};
+
+#define DEVICE_CLASSES (sizeof(device_info)/sizeof(struct class_info))
+\end{lstlisting}
+
+
+
+\newpage
+
+\section{HDD}
 \begin{enumerate}
   \item Descripcion general de la interfaz IDE.
   \item Que habia antes y que cambié.
 \end{enumerate}
+
+\subsection{IDE}
+IDE es una sigla que se refiere a la especificación eléctrica de los cables que conectan unidades ATA con otro dispositivo. Las unidades usan la interfaz ATA (Advanced Technology Attachment). Un cable IDE generalmente termina siendo conectado a un controlador IDE, que a su vez está conectado a un bus PCI.
+
+Cada dispositivo IDE aparece como un dispositivo en el bus PCI. Si el código de clase es 0x01 (Mass Storage Controller) y el código de subclase es 0x1 (IDE), entonces el dispositivo en cuestión es una unidad IDE. Una unidad IDE sólo utiliza cinco registros BAR de los seis disponibles.
+
+\begin{enumerate}
+ \item[BAR0] Dirección base del canal primario (espacio de I/O). Si es 0x0 o 0x1, entonces el puerto es 0x1F0.
+ \item[BAR1] Dirección base del puerto de control del canal primario (espacio de I/O). Si es 0x0 o 0x1, entonces el puerto es 0x3F6.
+ \item[BAR2] Dirección base del canal secundario (espacio de I/O). Si es 0x0 o 0x1, entonces el puerto es 0x170.
+ \item[BAR3] Dirección base del puerto de control del canal secundario (espacio de I/O). Si es 0x0 o 0x1, entonces el puerto es 0x376.
+ \item[BAR4] Bus Master IDE. Se refiere ala base del rango de I/O consistiendo de 16 puertos. Los primeros 8 puertos controlan el DMA del canal primario y los segundos ocho del secundario.
+\end{enumerate}
+
+Un controlador de IDE que funcione en paralelo utilizará las IRQ 14 y 15; un IDE serial solo utiliza un IRQ. Para leer esta IRQ, hay que mirar el espacio de configuración del dispositivo PCI, como fue explicado en la sección anterior.
+
+\subsection{ATA PIO}
+En la parte anterior vimos como detectar dispositivos de almacenamientoATA y como comunicarnos con ellos. Ahora vemos como escribir y leer de ellos. Esto ya estaba implementado en DeliriOS, pero de una forma incorrecta. Mi trabajo en esta parte se basó en hacer la implementación correcta, conforme al estándar.
+
+Esta forma se basa en usar el comando IDENTIFY, que nos permitirá obtener más información del dispositivo.
+
+
+PIO es una manera de leer y escribir a dispositibos ATA usando polling. Veamos de que se trata.
+
+De acuerdo con la especificación de ATA, el modo PIO debe estar soportado por todas las unidades ATA como el mecanismo de transferencia de datos por default.
+
+PIO, al ser un método de polling, usa una cantidad tremenda de recursos de CPU, pues cada byte de datos transferido entre el disco y el CPU debe ser enviado a atraves del puerto IO del procesador. 
+
+\subsubsection{Más detalles de ATA PIO}
+
+La especificación de ATA está hecha sobre otra más vieja llamada ST506. Con ST506, cada disco estaba conectado a una placa controladora por dos cables, un cable de datos y un cable de comandos.
+
+La placa controladora estaba enchufada al bus de la placa madre. El procesador se comunicaba con la placa controladora a través de los puertos de IO del CPU, que estaban directamente conectados al bus del motherboard.
+
+Lo que la especificación original de IDE hacía era despegar las placas controladores del motherboard, y pegar un controlador en cada disco rígido, permanentemente. Cuando el procesador accede al puerto IO del disco, hay un chip que se sirve de atajo entre los pins del bus IO del procesador y el cable IDE, por lo tanto el procesador podía acceder directamente a la placa controladora de la unidad IDE. El mecanismo de transferencia de datos entre el CPU y la controladora permaneció el mismo, y hoy es llamado modo PIO. 
+
+\subsubsection{IDENTIFY}
+
+Hasta aquí describimos lo que ya estaba en DeliriOS, que de hecho se remonta a un sistema operativo diseñado por Juan Pablo Darago (juampiOS). En este trabajo mejoramos ese código, modernizandolo y haciendolo obediente al estándar.
+
+El comando IDENTIFY es la mejor forma de obtener información sobre los discos ATA conectados a la placa madre.
+
+Para usar el comando IDENTIFY, primero hay que seleccionar la unidad objetivo enviando 0xA0 para la unidad maestro o 0xB0  para la unidad esclavo al puerto IO DRIVE\_SELECT. Luego, deben ponerse en 0 los puertos SECTOR\_COUNT, LBALO, LBAMID, LBAHI (es decir, los puertos 0x1F2 a 0x1F5). Luego, debe enviarse el comando IDENTIFY (0xEC) al puerto IO comando (0x1F7). Finalmente leer el puerto status (0x1F7) nuevamente. Si el valor leido es 0, la undiad no existe. Para cualquier otro valor, hay que hacer polling del puerto status hasta que el bit 7 (BSY) se ponga en 0.
+
+En ese momento, si ERR está en 0, la información esta lista para ser leida del puerto de datos (0x1F0). Hay que leer 256 valores de 16 bits y guardarlos.
+
+Alguna información interesante devuelta por IDENTIFY:
+
+\begin{itemize}
+ \item uint16\_t 0: es útil si el dispositivo no es un disco rígido (lectora de discos removibles, por ejemplo).
+ \item uint16\_t 83: el bit 10 está seteado si el dispositivo soporta LBA48 mode (el modo de direccionamiento de sectores que utiliza DeliriOS)..
+ \item uint16\_t 88: los bits en el byte bajo nos dicen si se soportan modos UDMA y el byte alto nos dice cuál modo UDMA está activo. 
+ \item uint16\_t 60 y 61: tomados como un uint32\_t contiene el numero total de  sectores LBA de 28 bits direccionables en el disco (Si es distinto de cero, el disco soporta LBA28).
+ \item uint16\_t 60 y 61: tomados como un uint32\_t contiene el numero total de  sectores LBA de 28 bits direccionables en el disco (Si es distinto de cero, el disco soporta LBA28).
+ \item uint16\_t 100 a 103: tomados como una uint64\_t contiene el número total de sectores LBA de 48 bits direccionables en el disco.
+\end{itemize}
+
+
+
+
+
 

@@ -1,26 +1,24 @@
 
-\chapter{Introducción}
-DeliriOS es un exokernel bare-metal cuyo objetivo es proveer una base de desarrollo para programas donde ocurren muchas operaciones de sincronización entre threads.
+\chapter*{Introducción}
+\addcontentsline{toc}{chapter}{Introducción}
+DeliriOS es un exokernel bare-metal. Su objetivo es proveer una base de desarrollo para programas donde ocurren muchas operaciones de sincronización entre threads.
 
 El objetivo original de este trabajo era implementar, sobre el trabajo de Sebastián Nale y Julián Pinelli, el módulo de escritura para ext2.
-Luego, el trabajo derivó en otros asuntos que fueron resueltos, como el diseño de la API de IO de DeliriOS (hecho en conjunto con Sebastián y Julián) y la refactorización del driver para discos rígidos (IDE) y la detección de dispositivos PCI (requerida para la refactorización del driver).
+Luego, el trabajo derivó en otros asuntos que fui resolviendo, como el diseño de la API de IO de DeliriOS (hecho en conjunto con Sebastián y Julián) y la refactorización del driver para discos rígidos (IDE) y la detección de dispositivos PCI (requerida para la refactorización del driver).
 
 Todos los objetivos fueron cumplidos, y el objetivo de este trabajo es explicarlos, documentarlos y exhibir resultados generales sobre los módulos implementados.
 \newpage
 
-\section{Trabajo previo}
+\section*{Trabajo previo}
+\addcontentsline{toc}{section}{Trabajo previo}
 \begin{puntos}
   \item Trabajo de noit y Goldsmith.
 \end{puntos}
 
 
 
-\section{Motivación de este trabajo}
-
-\begin{puntos}
-  \item Por qué un filesystem
-  \item Por qué ext2.
-\end{puntos}
+\section*{Motivación de este trabajo}
+\addcontentsline{toc}{section}{Motivación de este trabajo}
 
 Para poder ejecutar programas que analizan datos utilizando DeliriOS, necesitamos poder leer y escribir datos en un dispositivo de memoria no volátil, por ejemplo, un disco rígido (o discos de estado sólido).
 

@@ -30,6 +30,9 @@
 \usepackage{wrapfig}
 \usepackage{caption}
 
+\definecolor{gray(x11gray)}{rgb}{0.85, 0.85, 0.85}
+
+
 \lstdefinestyle{customcmucho}{
   belowcaptionskip=1\baselineskip,
   breaklines=true,
@@ -41,12 +44,12 @@
     dir_entry
   },
   showstringspaces=false,
-  basicstyle=\footnotesize\ttfamily,
+  basicstyle=\scriptsize\ttfamily,
   keywordstyle=\bfseries\color{blue!40!black},
   commentstyle=\itshape\color{purple!40!black},
   identifierstyle=\color{black},
   stringstyle=\color{orange},
-  backgroundcolor=\color{lightgray},
+  backgroundcolor=\color{gray(x11gray)},
   numbers=left
 }
 
@@ -67,7 +70,7 @@
   commentstyle=\itshape\color{purple!40!black},
   identifierstyle=\color{black},
   stringstyle=\color{orange},
-  backgroundcolor=\color{lightgray},
+  backgroundcolor=\color{gray(x11gray)},
 }
 
 \lstdefinestyle{customasm}{
@@ -78,7 +81,6 @@
   basicstyle=\footnotesize\ttfamily,
   commentstyle=\itshape\color{purple!40!black},
 }
-
 
 
 %Formato de los links
@@ -132,7 +134,9 @@
 
 \usepackage{etoolbox}
 \AtBeginEnvironment{tikzpicture}{\shorthandoff{>}\shorthandoff{<}}{}{}
-\newcommand{\sectionbreak}{\clearpage}
+\renewcommand{\baselinestretch}{1.1}
+\renewcommand\_{\textunderscore\allowbreak}
+
 
 
 \begin{document}

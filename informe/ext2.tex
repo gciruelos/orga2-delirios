@@ -40,6 +40,107 @@ Como cada bitmap está limitado a un único bloque, esto significa que el tamañ
 Los bloques que siguen a los bitmaps en cada grupo de bloques están designados a la tabla de inodos para ese grupo y el resto son bloques de datos.
 
 
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{img/block_structure.pdf}
+  \caption{Estructura de un grupo de bloques.}
+\end{figure}
+
+\subsubsection{Inodos}
+
+Como se ha dicho anteriormente, cada inodo representa un archivo o directorio. Los inodos contienen metadatos relevantes del archivo, a destacar:
+
+\begin{itemize}
+\item Los permisos de acceso. Incluyendo el clásico número octal de 3 cifras más otros 3 bits: Sticky bit que vale más que nada para forzar privilegios en los archivos de un directorio y los set process User/Group ID que setea los privilegios de Usuario/Grupo del archivo respectivamente al proceso si se ejecutase el archivo.
+\item El tipo de archivo. Puede ser: Archivo común, directorio, block device, character device, socket, fifo o symlink.
+\item El tamaño en bytes del archivo, vale para todos los tipos incluyendo directorios, más adelante se hablará de esto.
+\item Los tiempos de acceso, borrado, creación, etc.
+\end{itemize}
+
+Por último lo más importante: contiene los números de los bloques que una vez concatenados formarían el archivo completo. Un lector atento se dará cuenta de que debido al tamaño fijo de los inodos, no sería posible representar archivos de gran tamaño ya que esto supondría almacenar muchos números de bloque, podemos despejar dicha inquietud con la siguiente imagen:
+
+\begin{figure}
+ \centering
+ \includegraphics[width=\textwidth]{img/inodo.pdf}
+ \caption{Estructura de un archivo junto con el inodo que lo representa, donde N es la cantidad de números de bloque que entran en un bloque. Esto es $N = \frac{block size}4$, ya que un número de bloque son 4 bytes.}
+\end{figure}
+
+\pagebreak
+
+Hay dos tipos distintos de bloques, estos son:
+
+\begin{description}
+\item[De datos] Estos bloques forman el contenido del archivo. Se los identifica por su número absoluto en el filesystem como dijimos antes, en el inodo hay exactamente 12 de estos números (en orden) que apuntan a 12 bloques de datos, se los llama punteros a bloque directos. Si el archivo es lo suficientemente chico podrían no usarse los 12 punteros, en cuyo caso el resto de los números son inválidos. Los números que se les otorgaron en la imagen son relativos al archivo partiendo desde el 0, para poder comprender las distancias entre cada uno de los bloques mostrados y la magnitud que puede llegar a tener un archivo, no confundir con el número absoluto que los representa en el filesystem. Este número otorgado va a ser importante para entender la implementación más adelante.
+\item[Indirecto] Estos bloques contienen punteros a otros bloques, esto es un arreglo de números de bloque que apuntan a otros bloques.
+  Como dice la imagen, la cantidad de números de bloque que contienen es $\frac{block size}{4}$, ya que un número de bloque son 4 bytes. Podrían contener menos si el archivo no es lo suficientemente grande, en cuyo caso el resto de los valores son inválidos.
+\end{description}
+
+Y a su vez hay 3 tipos de bloques indirectos, en tres niveles de profundidad:
+
+\begin{description}
+\item[Simple] Contiene punteros a bloque directos. El inodo contiene un número de bloque apuntando a uno de estos (bn\_single en la imagen), si es que el tamaño del archivo es suficiente, el cual se lo denomina puntero a bloque simple.
+\item[Doble] Contiene punteros a bloques simples, el inodo contiene un número de bloque apuntando a uno de estos (bn\_double en la imagen) si es que el tamaño del archivo es suficiente, el cual se lo denomina puntero a bloque doble.
+\item[Triple] Contiene punteros a bloques dobles. El inodo contiene un número de bloque apuntando a uno de estos (bn\_triple) en la imagen, si es que el tamaño del archivo es suficiente, el cual se lo denomina puntero a bloque triple. Como es el nivel más grande posible de bloque indirecto solo puede haber uno por archivo, que es el apuntado por el inodo.
+\end{description}
+
+Gracias a esto, un inodo puede apuntar a una inmensa cantidad de bloques utilizando dichos bloques indirectos. La cantidad máxima de bloques que puede tener un archivo está delimitada por el tamaño de bloque, debido que a su vez esto delimita la cantidad de números de bloque dada por $N = \frac{block size}{4}$. En total nos quedan $12 + N + N^2 + N^3$ bloques de datos\footnote{Si tomamos los 12 bloques apuntados por el inodo, más los N bloques apuntados por el bloque indirecto simple, más los $N^2$ bloques apuntados por los $N$ bloques simples apuntados por el bloque indirecto doble, más los $N^3$ bloques apuntados por los $N^2$ bloques simples apuntados por los $N$ bloques dobles apuntados por el bloque indirecto triple}. Para bloques de 1KiB, esto es 16GiB de tamaño máximo de archivo, sin contar el costo de los bloques indirectos. \par
+
+\subsubsection{Directorios}
+
+Lo único importante que nos falta para entender cómo leer archivos de EXT2 son los directorios. En EXT2, estos son simplemente un tipo especial de archivo. Esto es, están representados por un inodo al igual que un archivo. Se los diferencia con el campo de tipo en el inodo como vimos anteriormente, y poseen una estructura particular dentro del contenido del archivo que define el contenido del directorio. \par
+Notar que es aquí donde se almacenan los nombres de los archivos dentro del directorio y no en el inodo del archivo. Basta con conocer el inodo del directorio raíz, para poder comenzar a recorrer el filesystem. Alegrará saber que dicho inodo está reservado y es siempre el número 2. \par
+Solo falta entender la estructura interna del directorio. Está formado por entradas de directorio una seguida de la otra, de tamaño variable. A su vez cada entrada tiene los siguientes campos:
+
+\begin{description}
+    \item[Inodo] El número de inodo del archivo al que estamos apuntando en esta entrada. Si es 0, la entrada se considera nula, esto es libre para ser usada en caso de tener que escribir una entrada o libre de ser ignorada en caso de tener que avanzar.
+    \item[Tamaño de la entrada] El tamaño total de la entrada, contando todos los campos incluyendo el nombre y el padding necesario hasta la próxima entrada. Debe ser múltiplo de 4. Necesario para saber dónde está ubicada la siguiente entrada. Para decirlo de otro modo, la suma de estos campos de todas las entradas debería dar el tamaño del bloque.
+    \item[Tipo de archivo] Esto originalmente era la parte alta del tamaño del nombre que es el siguiente campo, pero si se activa un flag en el superbloque (Que en general es activado de facto) se toma como tipo de la entrada. Notar que no son los mismos valores que en POSIX, sino un número del 0 al 7, ver tabla más adelante.
+    \item[Tamaño del nombre] El tamaño del nombre que comienza justo después de este campo. Debido a que el otro campo es generalmente usado para el tipo nos da un tamaño de nombre máximo por archivo de 255 caracteres.
+    \item[Nombre] El nombre del archivo, \textbf{no necesariamente un null terminated string}, hay que utilizar el tamaño del nombre para poder leerlo con seguridad.
+    \item[Padding] Luego del nombre viene el suficiente padding para completar el tamaño de la entrada.
+\end{description}
+
+Los valores para los tipos son: \par
+
+\begin{tabular}{r|l}
+Valor & Tipo \\ \hline
+0 & Indefinido/NULL \\ 
+1 & Archivo común \\
+2 & Directorio \\
+3 & Char Device \\
+5 & Block Device \\
+4 & FIFO \\
+6 & Socket \\
+7 & Symbolic Link \\
+\end{tabular} \\
+
+Podemos ver un ejemplo de esto en la siguiente imagen:
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{img/directorio.pdf}
+  \caption{Estructura de un directorio raíz con bloques de 1KiB}
+\end{figure}
+
+Es un directorio raíz (Inodo 2), que sucesivamente, contiene las siguientes entradas:
+
+\begin{description}
+\item[.] Esta es una entrada estándar de tipo directorio (2) que poseen todos los directorios, la cual apunta al mismo directorio en cuestión, en este caso el inodo 2 que es este mismo.
+\item[..] Esta es otra entrada estándar de tipo directorio (2) que poseen todos los directorios, apunta al directorio que contiene a este. Al ser el directorio raíz, este se apunta a sí mismo también, el número 2.
+\item[Entrada Nula] La podemos detectar por el campo de inodo en 0. Podemos ignorarla en caso de lectura o usar el espacio vacío si quisiéramos escribir una entrada adicional en el directorio, siempre y cuando alcance el espacio.
+\item[DeliriOS.bin] Este es un archivo, lo podemos detectar por el tipo (1). Está apuntando al inodo 23, si quisiéramos leerlo solo tenemos que cargar el inodo 23 y parsearlo correctamente. 
+\item[var] Otro directorio (Tipo 2), ubicado en el inodo 30, si quisieramos leer su contenido tenemos que repetir el proceso actual pero con el inodo 30. Al ser la última entrada, necesariamente el tamaño abarca hasta el final del bloque. Para asegurarnos que llegamos al final, ya que podría haber más entradas en el bloque siguiente, chequeamos el tamaño del directorio (en este caso el raíz), si es 1024 entonces llegamos al final\footnote{Esto obliga a que el tamaño de los directorios sea siempre múltiplo del tamaño del bloque.}.
+\end{description}
+
+
+Con todo esto, ya podemos entender casi en completitud todo ext2, así que podemos pasar a ver las implementaciones del sistema de archivos.
+
+
+Como dijimos anteriormente, ext2 carece de una especificación clara y canónica.
+Todas las implementaciones de ext2 parten de analizar el código de la implementación de Linux e imitarlo.
+
+Sin embargo, existe una documentación no oficial, escrita por Dave Poirier, que es en la que nos basamos para realizar este trabajo \cite{ext2doc}.
+
 \subsection{Otras implementaciones}
 \begin{puntos}
   \item Breve descripción de como otros sistemas operativos resolvieron el problema de los filesystems en general y ext2 en particular.
@@ -47,73 +148,66 @@ Los bloques que siguen a los bitmaps en cada grupo de bloques están designados 
 
 
 
-\begin{puntos}
-  \item Descripción de la API de IO de delirios.
-  \item Overview general de la implementación.
-  \item Descripción detallada, funcion por funcion de la implementacion.
-  \item Como testeamos, unit testing y testing e2e.
-\end{puntos}
-
-Como dijimos anteriormente, ext2 carece de una especificación clara y canónica.
-Todas las implementaciones de ext2 parten de analizar el código de la implementación de Linux e imitarlo.
-Sin embargo, existe una documentación no oficial, escrita por Dave Poirier, que es en la que nos basamos para realizar este trabajo \cite{ext2doc}.
-
+\newpage
 \section{Nuestra implementación}
 
 Este trabajo se trata sobre la implementación de la parte de escritura de ext2, es decir, las funciones que se ocupan de modificar el sistema de archivos de cualquier manera (creando, modificando y borrando archivos, en general). 
 
 La parte de lectura del sistema de archivos (carga, interpretación de flags de opciones y lectura de archivos) puede encontrarse muy bien explicada en el trabajo de noit y Goldsmith.
 
-\subsection{Descripción de la API de IO de DeliriOS}
+\subsection{API de IO de DeliriOS}
 
-Primero comencemos describiendo la API de IO de DeliriOS, dado que esto nos va a permitir motivar y explicar todas las funciones de ext2 que implementamos.
+Primero comencemos viendo la API de IO de DeliriOS, dado que esto nos va a permitir motivar y explicar todas las funciones de ext2 que implementamos.
+
+\begin{lstlisting}[style=customc]
+int64_t read(int64_t fd, void *buf, uint64_t count)
+\end{lstlisting}
+\begin{lstlisting}[style=customc]
+int64_t write(int64_t fd, const void *buf, uint64_t count)
+\end{lstlisting}
+\begin{lstlisting}[style=customc]
+int64_t seek(int64_t fd, int64_t offset, int64_t origin)
+\end{lstlisting}
+\begin{lstlisting}[style=customc]
+int64_t tell(int64_t fd)
+\end{lstlisting}
+\begin{lstlisting}[style=customc]
+uint8_t type(const char *path)
+\end{lstlisting}
+\begin{lstlisting}[style=customc]
+int64_t create(const char *path, uint8_t filetype)
+\end{lstlisting}
+\begin{lstlisting}[style=customc]
+int64_t remove(const char *path)
+\end{lstlisting}
+\begin{lstlisting}[style=customc]
+int64_t truncate(int64_t fd, uint64_t length)
+\end{lstlisting}
+\begin{lstlisting}[style=customc]
+int64_t open(const char *path)
+\end{lstlisting}
+\begin{lstlisting}[style=customc]
+int64_t close(int64_t fd)
+\end{lstlisting}
+\begin{lstlisting}[style=customc]
+int64_t opendir(const char *path)
+\end{lstlisting}
+\begin{lstlisting}[style=customc]
+int64_t closedir(int64_t dd)
+\end{lstlisting}
+\begin{lstlisting}[style=customc]
+int64_t rewinddir(int64_t dd)
+\end{lstlisting}
+\begin{lstlisting}[style=customc]
+dir_entry * readdir(int64_t dd)
+\end{lstlisting}
 
 
-\begin{lstlisting}[style=customc]
-int64_t read(int64_t fd, void *buf, uint64_t count);
-\end{lstlisting}
-\begin{lstlisting}[style=customc]
-int64_t write(int64_t fd, const void *buf, uint64_t count);
-\end{lstlisting}
-\begin{lstlisting}[style=customc]
-int64_t seek(int64_t fd, int64_t offset, int64_t origin);
-\end{lstlisting}
-\begin{lstlisting}[style=customc]
-int64_t tell(int64_t fd);
-\end{lstlisting}
-\begin{lstlisting}[style=customc]
-uint8_t type(const char *path);
-\end{lstlisting}
-\begin{lstlisting}[style=customc]
-int64_t create(const char *path, uint8_t filetype);
-\end{lstlisting}
-\begin{lstlisting}[style=customc]
-int64_t remove(const char *path); 
-\end{lstlisting}
-\begin{lstlisting}[style=customc]
-int64_t truncate(int64_t fd, uint64_t length);
-\end{lstlisting}
-\begin{lstlisting}[style=customc]
-int64_t open(const char *path);
-\end{lstlisting}
-\begin{lstlisting}[style=customc]
-int64_t close(int64_t fd);
-\end{lstlisting}
-\begin{lstlisting}[style=customc]
-int64_t opendir(const char *path);
-\end{lstlisting}
-\begin{lstlisting}[style=customc]
-int64_t closedir(int64_t dd);
-\end{lstlisting}
-\begin{lstlisting}[style=customc]
-int64_t rewinddir(int64_t dd);
-\end{lstlisting}
-\begin{lstlisting}[style=customc]
-dir_entry * readdir(int64_t dd);
-\end{lstlisting}
+Como puede verse, es básicamente la API estándar de UNIX, nos inspiramos en ella porque de esta manera sería más fácil hacer programas en DeliriOS. 
 
+Las funciones en las que nos concentraremos en este trabajo son: write, create, remove y truncate, dado que son aquellas para las cuales se necesita modificar el sistema de archivos.
 
-Es la API estándar de UNIX, nos inspiramos en ella porque de esta manera sería más fácil hacer programas en DeliriOS. 
+El resto de las funciones son de lectura y fueron debidamente explicadas en el trabajo de noit y Goldsmith.
 
 
 \subsection{Visión general de la implementación}
@@ -441,7 +535,8 @@ Toma como parametros el bitmap en cuestion, el tamaño del bitmap en bits y desd
 \begin{lstlisting}[style=customc]
 uint64_t bitmap_search_zeros(const void* _bitmap, uint64_t size, uint64_t offset, uint64_t count)
 \end{lstlisting}
-Busca /count/ cantidad de bits en cero en el bitmap. Recibe como parámetros el bitmap en cuestión, el tamano del bitmap en bits, desde que bit empezar a buscar ceros y cuántos ceros buscar.
+
+Busca count cantidad de bits en cero en el bitmap. Recibe como parámetros el bitmap en cuestión, el tamano del bitmap en bits, desde que bit empezar a buscar ceros y cuántos ceros buscar.
 
 Devuelve la posición a partir de la cual encontro los bits. Si es size, significa que no encontro.
 
@@ -453,4 +548,34 @@ uint64_t bitmap_clear_bits(const void* _bitmap, uint64_t size, uint64_t offset, 
 \end{lstlisting}
 
 Modifica el bitmap poniendo en 1 (o 0, si es clear) count cantidad de bits de offset en adelante.
+
 Devuelve 0 si salió todo bien, 1 si se pasó de size y 2 si ya estaban seteados en 1 (o 0, si es clear).
+
+\subsection{Testing}
+
+Para testear, diseñamos un subsistema especial, que nos permitiera probar la correctitud de las funciones implementadas desde afuera de delirios. Para esto, utilizamos la clásica técnica de dependency injection.
+
+Tenemos una imagen de ext2 en un archivo (hdd.img), y lo que hacemos es abrirla como si fuera un archivo común y corriente, y guardamos su file handler en una variable global llamada fp.
+
+Luego, pasamos a lo vital de la dependency injection: overloadeamos as funciones hdd\_read y hdd\_write de la siguiente manera.
+
+
+\begin{lstlisting}[style=customcmucho]
+void hdd_read(uint32_t lba_address, uint32_t sectors, void* buffer) {
+    fseek(fp, lba_address * ATA_SECTSIZE, SEEK_SET);
+    fread(buffer, ATA_SECTSIZE, sectors, fp);
+}
+\end{lstlisting}
+
+\begin{lstlisting}[style=customcmucho]
+void hdd_write(uint32_t lba_address, uint32_t sectors, void* buffer) {
+    fseek(fp, lba_address * ATA_SECTSIZE, SEEK_SET);
+    fwrite(buffer, ATA_SECTSIZE, sectors, fp);
+} 
+\end{lstlisting}
+
+De esta manera, cuando las funciones de ext2 y de la cache de bloques las llamen, van a pensar que estan leyendo de un disco, mientras que simplemente estamos escribiendo un archivo.
+
+Así, podemos testear todas las funciones que implementamos con extrema facilidad. En particular, todas las funciones presentadas en este informe tienen tests de todo tipo: funcionales, de error, de carga, entre otros.
+
+
