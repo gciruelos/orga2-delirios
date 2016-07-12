@@ -11,9 +11,13 @@ Todos los objetivos fueron cumplidos, y el objetivo de este trabajo es explicarl
 
 \section*{Trabajo previo}
 \addcontentsline{toc}{section}{Trabajo previo}
-\begin{puntos}
-  \item Trabajo de noit y Goldsmith.
-\end{puntos}
+
+Este trabajo fue empezado mientras noit y Goldsmith aún hacían su trabajo práctico final. El objetivo original de su trabajo era dar soporte para la lectura del sistema de archivos ext2, la carga estática de binarios en formato elf64, y un shell sencillo que permita hacer uso de estas funcionalidades. Además de eso, agregaron un soporte de \textit{syscalls} más directo que el convencional, un heap (\emph{kmalloc}), y una interfaz simple similar a un VFS para poder dar soporte a múltiples filesystems más fácilmente (esto en parte con mi diseño e implementación, sobre todo en las funciones de escritura).
+
+Sobre la marcha renovaron por completo la base de código existente para mejorar la mantenibilidad, extensibilidad y depurabilidad. Ellos a su vez se basaron en la primera versión de DeliriOS, que era un binario que prendía los procesadores y los pasaba a modo largo.
+
+Es importante nombrar el trabajo que hicieron noit y Goldsmith, dado que trabajar sobre el código que implementaron ellos fue muy ameno e hizo que mi trabajo no fuera tan pesado. Tuve que hacer pocos refactors durante el desarrollo del trabajo, y todos fueron charlados con noit y llevados a cabo con su ayuda (que conocía más de otras partes de DeliriOS que yo necesitaba retocar de vez en cuando).
+
 
 
 
