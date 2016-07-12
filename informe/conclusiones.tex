@@ -1,4 +1,18 @@
-\chapter{Conclusión}
+\chapter*{Conclusión}
+\addcontentsline{toc}{chapter}{Conclusión}
 
-\section{Trabajo futuro}
+Luego de 102 commits, 3888 líneas agregadas y 1770 borradas, puedo decir que conseguí realizar todo lo que planeé antes de empezar el trabajo y más. Ahora DeliriOS puede realizar cómputos y guardarlos en dispositivos no volátiles, lo cual lo hace mucho más útil que antes.
+
+Realicé exitosamente la finalización de la implementación del sistema de archivos ext2, haciendo desde 0 la parte de escritura. Además hice completa la implementación de la detección de dispositivos PCI, necesaria para utilizar cualquier periférico de la computadora. Finalmente remodelé y refactoricé el driver de disco existente en DeliriOS, de manera de hacerlo más resiliente a fallas.
+
+De esta manera, el sistema operativo gana robustez y se vuelve mucho más interesante. Además, da el puntapié inicial para permitir construir sobre esto muchas cosas más.
+
+\section*{Trabajo futuro}
+\addcontentsline{toc}{section}{Trabajo futuro}
+
+\begin{itemize}
+  \item Soporte de USB. De tal manera de poder tener a DeliriOS en un USB y que corra desde ahí. La mejor idea sería soportar XHCI (es decir, USB 3.0).
+  \item Soporte de SATA y DMA/UDMA. Para acceder al disco a velocidades de sistemas operativos modernos.
+  \item Más opciones para hacer programas que soporten cómputo paralelo. Utilidades generales para el programador, que permitan que programar en DeliriOS sea más sencillo.
+\end{itemize}
 

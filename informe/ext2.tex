@@ -42,7 +42,7 @@ Como cada bitmap está limitado a un único bloque, esto significa que el tamañ
 Los bloques que siguen a los bitmaps en cada grupo de bloques están designados a la tabla de inodos para ese grupo y el resto son bloques de datos.
 
 
-\begin{figure}
+\begin{figure}[H]
   \centering
   \includegraphics[width=\textwidth]{img/block_structure.pdf}
   \caption{Estructura de un grupo de bloques.}
@@ -61,7 +61,7 @@ Como se ha dicho anteriormente, cada inodo representa un archivo o directorio. L
 
 Por último lo más importante: contiene los números de los bloques que una vez concatenados formarían el archivo completo. Un lector atento se dará cuenta de que debido al tamaño fijo de los inodos, no sería posible representar archivos de gran tamaño ya que esto supondría almacenar muchos números de bloque, podemos despejar dicha inquietud con la siguiente imagen:
 
-\begin{figure}
+\begin{figure}[H]
  \centering
  \includegraphics[width=\textwidth]{img/inodo.pdf}
  \caption{Estructura de un archivo junto con el inodo que lo representa, donde N es la cantidad de números de bloque que entran en un bloque. Esto es $N = \frac{block size}4$, ya que un número de bloque son 4 bytes.}
@@ -118,7 +118,7 @@ Valor & Tipo \\ \hline
 
 Podemos ver un ejemplo de esto en la siguiente imagen:
 
-\begin{figure}
+\begin{figure}[H]
   \centering
   \includegraphics[width=\textwidth]{img/directorio.pdf}
   \caption{Estructura de un directorio raíz con bloques de 1KiB}
@@ -143,10 +143,24 @@ Todas las implementaciones de ext2 parten de analizar el código de la implement
 
 Sin embargo, existe una documentación no oficial, escrita por Dave Poirier, que es en la que nos basamos para realizar este trabajo \cite{ext2doc}.
 
-\subsection{Otras implementaciones}
-\begin{puntos}
-  \item Breve descripción de como otros sistemas operativos resolvieron el problema de los filesystems en general y ext2 en particular.
-\end{puntos}
+\subsection{La implementación de ext2 de Linux}
+
+La implementación de ext2 de Linux (la primera) contiene muchas optimizaciones de performance, que tienden a mejorar la velocidad del I/O cuando se escriben o leen archivos.
+
+La implementación de ext2 de Linux toma ventaja del manejo del buffer de caché haciendo readaheads: cuando un bloque tiene que ser leído, el kernel hace pedidos de I/O en varios bloques contiguos. De esta manera, trata de asegurar que el proximo bloque a leer ya estará disponible, cargado en la cache. Los readaheads son comúnmente llevadas a cabo en lecturas secuenciales de archivos y la implementación de Linux los extiende también a lecturas de directorios, tanto en lecturas explicitas (readdir) como lecturas implícitas.
+
+La implementación de ext2 de Linux tambien tiene muchas optimizaciones en la reserva de bloques. Los bloques de grupos son utilizados para agrupar inodos con datos: el kernel siempre trata de reservar bloques de datos para un archivo en el mismo grupo que su inodo. Eso está diseñado para intentar reducir la cantidad de movimientos del cabezal del disco rígido cuando el kernel lee un inodo y sus bloques de datos.
+
+Cuando escribe datos a un archivo, ext2fs prereserva hasta 8 bloques adyacentes cuando reserva un nuevo bloque. Los hitrates de la prereserva están alrededor del 75\%, aún en sistemas de archivos muy llenos.
+
+Esta prereserva permite buena performance de escritura bajo carga pesada. También permite que a un mismo archivo se le den bloques contiguos de datos, lo cual hará más rápidas futuras lecturas
+
+Estas dos optimizaciones de reserva producen una muy buena localidad de
+\begin{itemize}
+ \item archivos relacionados dentro de bloques de grupos, y
+ \item bloques relacionados dentro de bloques de grupos.
+\end{itemize}
+
 
 
 
@@ -156,6 +170,10 @@ Sin embargo, existe una documentación no oficial, escrita por Dave Poirier, que
 Este trabajo se trata sobre la implementación de la parte de escritura de ext2, es decir, las funciones que se ocupan de modificar el sistema de archivos de cualquier manera (creando, modificando y borrando archivos, en general). 
 
 La parte de lectura del sistema de archivos (carga, interpretación de flags de opciones y lectura de archivos) puede encontrarse muy bien explicada en el trabajo de noit y Goldsmith.
+
+
+La parte de escritura implementa (de la mejor manera posible) todas las optimizaciones que dijimos que Linux implementa en la sección anterior. Sin embargo, por razones obvias, los algoritmos de Linux son mucho más sofisticados y mucho más complejos.
+
 
 \subsection{API de IO de DeliriOS}
 
