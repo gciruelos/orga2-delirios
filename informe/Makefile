@@ -4,6 +4,7 @@ img/%.pdf: img/%.svg
 	inkscape --file=$< --export-pdf=$@
 
 informe: $(IMGS)
+	python3 tiempos/tiempos.py
 	pdflatex informe.tex
 	pdflatex informe.tex
 	bibtex informe
@@ -22,4 +23,4 @@ clean:
 	rm -f informe-blx.bib
 	rm -f *.toc
 	rm -f *.pdf
-	rm -f img/*.pdf img/*.pdf_tex
+	rm -f img/*.pdf img/*.pdf_tex tiempos/*.pdf
