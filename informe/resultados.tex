@@ -31,7 +31,7 @@ Comparemos la cantidad de líneas de código de cada implementación.
     (GNU Hurd,4104)};
 \end{axis}
 \end{tikzpicture}
-\caption{Líneas de código de la implementación de ext2 de cada sistema operativo. El programa cloc fue utilizado para medirlas, dado que cuenta las lineas de código puro, sin contar líneas vacías y de comentarios.}
+\caption{Líneas de código de la implementación de ext2 de cada sistema operativo. El programa \texttt{cloc} fue utilizado para medirlas, dado que cuenta las lineas de código puro, sin contar líneas vacías y de comentarios.}
 \end{figure}
 
 \begin{figure}[H]
@@ -68,55 +68,85 @@ Como puede verse, la implementación de DeliriOS es realmente simple y corta. Es
 
 \section{Performance de nuestra implementación}
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\textwidth]{tiempos/create.pdf}
-  \caption{}
-\end{figure}
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\textwidth]{tiempos/mkdir.pdf}
-  \caption{}
-\end{figure}
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\textwidth]{tiempos/read.pdf}
-  \caption{}
-\end{figure}
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\textwidth]{tiempos/remove.pdf}
-  \caption{}
-\end{figure}
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\textwidth]{tiempos/write.pdf}
-  \caption{}
-\end{figure}
+Para medir la performance de nuestra implementación decidimos compararla con la de Linux.
+Tenemos que aclarar que medir este tipo de piezas de software y compararlas es muy difícil por varias razones.
+Por ejemplo, como son operaciones dentro de todo muy rápidas, por lo que si las mediciones están mal hechas, el \emph{preemption} del sistema operativo las puede arruinar.
+
+Como DeliriOS sólo soporta ATA PIO por ahora, necesitamos algún ambiente de prueba en el que esto no sea un limitante. Por eso, testeamos sobre una máquina virtual que emulara este tipo de disco.
+
+Las mediciones las tomamos de la siguiente manera: linkeamos los mismos tests que los tests de correctitud por fuera de delirios y los usamos para testear distintas operaciones sobre una imagen de disco.
+Tambi\'en realizamos las mismas operaciones con Linux.
+Esto ya es un problema, porque el código de DeliriOS va a correr en \emph{userspace}, mientras que el código de Linux va a correr en \emph{kernelspace}.
+Veremos cómo corregir esto más adelante, pero primero veamos cómo testeamos. Realizamos 500 repeticiones de cada test, y cada test consistió en lo siguiente.
+
+\begin{itemize}
+    \item[create] 36 archivos creados.
+    \item[mkdir] 10 directorios creados.
+    \item[read] 104000 caract\'eres leídos de 2 archivos.
+    \item[remove] 8 archivos borrados.
+    \item[write] 104000 caract\'eres escritos en 2 archivos.
+\end{itemize}
+
+Todos los tests fueron corridos con el correspondiente flush a disco (fsync en Linux) de tal manera que sean efectivos.
+
+Veamos los resultados.
+
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=\textwidth]{tiempos/create_corregido.pdf}
-  \caption{}
+  \begin{minipage}[b]{0.49\textwidth}
+    \includegraphics[width=\textwidth]{tiempos/create.pdf}
+    \caption{}
+  \end{minipage}
+  \begin{minipage}[b]{0.49\textwidth}
+    \includegraphics[width=\textwidth]{tiempos/mkdir.pdf}
+    \caption{}
+  \end{minipage}
+  \hfill
 \end{figure}
 \begin{figure}[H]
   \centering
-  \includegraphics[width=\textwidth]{tiempos/mkdir_corregido.pdf}
-  \caption{}
+  \begin{minipage}[b]{0.49\textwidth}
+    \includegraphics[width=\textwidth]{tiempos/read.pdf}
+    \caption{}
+  \end{minipage}
+  \begin{minipage}[b]{0.49\textwidth}
+    \includegraphics[width=\textwidth]{tiempos/remove.pdf}
+    \caption{}
+  \end{minipage}
 \end{figure}
 \begin{figure}[H]
   \centering
-  \includegraphics[width=\textwidth]{tiempos/read_corregido.pdf}
+  \includegraphics[width=0.5\textwidth]{tiempos/write.pdf}
   \caption{}
+\end{figure}
+
+Sin embargo,...
+
+\begin{figure}[H]
+  \centering
+  \begin{minipage}[b]{0.49\textwidth}
+    \includegraphics[width=\textwidth]{tiempos/create_corregido.pdf}
+    \caption{}
+  \end{minipage}
+  \begin{minipage}[b]{0.49\textwidth}
+    \includegraphics[width=\textwidth]{tiempos/mkdir_corregido.pdf}
+    \caption{}
+  \end{minipage}
+\end{figure}
+\begin{figure}[H]
+  \begin{minipage}[b]{0.49\textwidth}
+    \includegraphics[width=\textwidth]{tiempos/read_corregido.pdf}
+    \caption{}
+  \end{minipage}
+  \begin{minipage}[b]{0.49\textwidth}
+    \includegraphics[width=\textwidth]{tiempos/remove_corregido.pdf}
+    \caption{}
+  \end{minipage}
 \end{figure}
 \begin{figure}[H]
   \centering
-  \includegraphics[width=\textwidth]{tiempos/remove_corregido.pdf}
-  \caption{}
-\end{figure}
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\textwidth]{tiempos/write_corregido.pdf}
+  \includegraphics[width=0.5\textwidth]{tiempos/write_corregido.pdf}
   \caption{}
 \end{figure}
 

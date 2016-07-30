@@ -1,7 +1,12 @@
 import statistics
 import matplotlib.pyplot as plt
+import matplotlib
 
-f = open('tiempos.txt', 'r')
+font = {'family' : 'normal',
+        'size'   : 22}
+
+matplotlib.rc('font', **font)
+f = open('tiempos/tiempos.txt', 'r')
 MICRO = 1000000.0
 
 r = {}
@@ -56,7 +61,7 @@ for i, exp in enumerate(experimentos):
     plt.ylabel("Tiempo (us)")
     ax.set_ylim(0.0, max(statistics.mean(delirios), statistics.mean(linux))*1.3)
     plt.xlabel("Sistema Operativo")
-    plt.savefig(exp+'.pdf')
+    plt.savefig('tiempos/'+exp+'.pdf', bbox_inches='tight')
 
 
 
@@ -73,4 +78,4 @@ for i, exp in enumerate(experimentos):
     plt.ylabel("Tiempo (us)")
     ax.set_ylim(0.0, max(statistics.mean(delirios), statistics.mean(linux))*1.3)
     plt.xlabel("Sistema Operativo")
-    plt.savefig(exp+'_corregido.pdf')
+    plt.savefig('tiempos/'+exp+'_corregido.pdf', bbox_inches='tight')

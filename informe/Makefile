@@ -3,7 +3,7 @@ IMGS = img/block_structure.pdf img/directorio.pdf img/inodo.pdf
 img/%.pdf: img/%.svg
 	inkscape --file=$< --export-pdf=$@
 
-informe: $(IMGS)
+informe: $(IMGS) tiempos/tiempos.py
 	python3 tiempos/tiempos.py
 	pdflatex informe.tex
 	pdflatex informe.tex
