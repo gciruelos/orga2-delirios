@@ -14,18 +14,18 @@ ext2 es aún hoy el sistema de archivos de elección para dispositivos de almace
 
 Como ext2 fue diseñado e implementado para Linux, carece de una especificación canónica, por lo que esto dificulta la implementación de cero.
 
-\subsection{Descripcion detallada de ext2}
+\subsection{Descripción detallada de ext2}
 
 Ahora analizaremos en detalle al sistema de archivos ext2. Como noit y Goldsmith en su trabajo práctico final también lo explicaron, amablemente me cedieron algunos gráficos y explicaciones que utilizaré a continuación (sobre todo de la parte de lectura), mientras que el resto de los gráficos y explicaciones fueron hechos por mí.
 
 El sistema de archivos ext2 usa:
 \begin{enumerate}
-  \item bloques unidad básica de almacenamiento,
-  \item inodos como medio de tener registro de archivos y objetos de ext2,
-  \item  grupos de bloques para dividir lógicamente el disco en secciones más manejables,
-  \item directorios para proporcionar una organización jerárquica de archivos,
-  \item bitmaps de bloques e inodos para tener registro de bloques e inodos reservados,
-  \item superbloques para definir los parámetros del sistema de archivo y su estado general.
+  \item Bloques unidad básica de almacenamiento.
+  \item Inodos como medio de tener registro de archivos y objetos de ext2.
+  \item Grupos de bloques para dividir lógicamente el disco en secciones más manejables.
+  \item Directorios para proporcionar una organización jerárquica de archivos.
+  \item Bitmaps de bloques e inodos para tener registro de bloques e inodos reservados.
+  \item Superbloques para definir los parámetros del sistema de archivo y su estado general.
 \end{enumerate}
 
 \subsubsection{Bloques}
@@ -36,7 +36,7 @@ El tamaño del bloque se determina cuando se formatea el disco y tiene impacto e
 \subsubsection{Grupos de bloques}
 
 Los bloques se agrupan en grupos de bloques para reducir la fragmentación y minimizar la cantidad de movimientos del cabezal del disco cuando se lee una gran cantidad de datos consecutivos. La información sobre cada grupo se almacena en una tabla de descriptores que se encuentra en los bloques inmediatamente después del superbloque. 
-Dos bloques cerca del inicio de cada grupo están reservados para \'el bitmap de uso de bloques y el bitmal de uso de inodos, que muestran cuales bloques e inodos estan siendo usados.
+Dos bloques cerca del inicio de cada grupo están reservados para \'el bitmap de uso de bloques y el bitma de uso de inodos, que muestran cuales bloques e inodos están siendo usados.
 Como cada bitmap está limitado a un único bloque, esto significa que el tamaño máximo de un bloque de grupos es 8 veces el tamaño del un bloque.
 
 Los bloques que siguen a los bitmaps en cada grupo de bloques están designados a la tabla de inodos para ese grupo y el resto son bloques de datos.
@@ -131,7 +131,7 @@ Es un directorio raíz (Inodo 2), que sucesivamente, contiene las siguientes ent
 \item[..] Esta es otra entrada estándar de tipo directorio (2) que poseen todos los directorios, apunta al directorio que contiene a este. Al ser el directorio raíz, este se apunta a sí mismo también, el número 2.
 \item[Entrada Nula] La podemos detectar por el campo de inodo en 0. Podemos ignorarla en caso de lectura o usar el espacio vacío si quisiéramos escribir una entrada adicional en el directorio, siempre y cuando alcance el espacio.
 \item[DeliriOS.bin] Este es un archivo, lo podemos detectar por el tipo (1). Está apuntando al inodo 23, si quisiéramos leerlo solo tenemos que cargar el inodo 23 y parsearlo correctamente. 
-\item[var] Otro directorio (Tipo 2), ubicado en el inodo 30, si quisieramos leer su contenido tenemos que repetir el proceso actual pero con el inodo 30. Al ser la última entrada, necesariamente el tamaño abarca hasta el final del bloque. Para asegurarnos que llegamos al final, ya que podría haber más entradas en el bloque siguiente, chequeamos el tamaño del directorio (en este caso el raíz), si es 1024 entonces llegamos al final\footnote{Esto obliga a que el tamaño de los directorios sea siempre múltiplo del tamaño del bloque.}.
+\item[var] Otro directorio (Tipo 2), ubicado en el inodo 30, si quisiéramos leer su contenido tenemos que repetir el proceso actual pero con el inodo 30. Al ser la última entrada, necesariamente el tamaño abarca hasta el final del bloque. Para asegurarnos que llegamos al final, ya que podría haber más entradas en el bloque siguiente, chequeamos el tamaño del directorio (en este caso el raíz), si es 1024 entonces llegamos al final\footnote{Esto obliga a que el tamaño de los directorios sea siempre múltiplo del tamaño del bloque.}.
 \end{description}
 
 
@@ -147,13 +147,13 @@ Sin embargo, existe una documentación no oficial, escrita por Dave Poirier, que
 
 La implementación de ext2 de Linux (la primera) contiene muchas optimizaciones de performance, que tienden a mejorar la velocidad del I/O cuando se escriben o leen archivos.
 
-La implementación de ext2 de Linux toma ventaja del manejo del buffer de caché haciendo readaheads: cuando un bloque tiene que ser leído, el kernel hace pedidos de I/O en varios bloques contiguos. De esta manera, trata de asegurar que el proximo bloque a leer ya estará disponible, cargado en la cache. Los readaheads son comúnmente llevadas a cabo en lecturas secuenciales de archivos y la implementación de Linux los extiende también a lecturas de directorios, tanto en lecturas explicitas (readdir) como lecturas implícitas.
+La implementación de ext2 de Linux toma ventaja del manejo del buffer de caché haciendo readaheads: cuando un bloque tiene que ser leído, el kernel hace pedidos de I/O en varios bloques contiguos. De esta manera, trata de asegurar que el próximo bloque a leer ya estará disponible, cargado en la cache. Los readaheads son comúnmente llevadas a cabo en lecturas secuenciales de archivos y la implementación de Linux los extiende también a lecturas de directorios, tanto en lecturas explicitas (readdir) como lecturas implícitas.
 
-La implementación de ext2 de Linux tambien tiene muchas optimizaciones en la reserva de bloques. Los bloques de grupos son utilizados para agrupar inodos con datos: el kernel siempre trata de reservar bloques de datos para un archivo en el mismo grupo que su inodo. Eso está diseñado para intentar reducir la cantidad de movimientos del cabezal del disco rígido cuando el kernel lee un inodo y sus bloques de datos.
+La implementación de ext2 de Linux también tiene muchas optimizaciones en la reserva de bloques. Los bloques de grupos son utilizados para agrupar inodos con datos: el kernel siempre trata de reservar bloques de datos para un archivo en el mismo grupo que su inodo. Eso está diseñado para intentar reducir la cantidad de movimientos del cabezal del disco rígido cuando el kernel lee un inodo y sus bloques de datos.
 
-Cuando escribe datos a un archivo, ext2fs prereserva hasta 8 bloques adyacentes cuando reserva un nuevo bloque. Los hitrates de la prereserva están alrededor del 75\%, aún en sistemas de archivos muy llenos.
+Cuando escribe datos a un archivo, ext2fs prereserva hasta 8 bloques adyacentes cuando reserva un nuevo bloque. Los hitrates de la pre reserva están alrededor del 75\%, aún en sistemas de archivos muy llenos.
 
-Esta prereserva permite buena performance de escritura bajo carga pesada. También permite que a un mismo archivo se le den bloques contiguos de datos, lo cual hará más rápidas futuras lecturas
+Esta pre reserva permite buena performance de escritura bajo carga pesada. También permite que a un mismo archivo se le den bloques contiguos de datos, lo cual hará más rápidas futuras lecturas
 
 Estas dos optimizaciones de reserva producen una muy buena localidad de
 \begin{itemize}
@@ -234,13 +234,13 @@ El resto de las funciones son de lectura y fueron debidamente explicadas en el t
 
 Pasaremos a dar una visión general del sistema de escritura, dado que el de lectura fue analizado en el trabajo de noit y Goldsmith.
 
-Lo que necesitamos para una implementación exitosa de ext2 es, básicamente,
+Lo que necesitamos para una implementación exitosa de ext2 es, básicamente:
 
 \begin{itemize}
-  \item una cache de bloques,
-  \item funciones que reserven bloques e inodos,
-  \item funciones que escriban datos en bloques,
-  \item funciones que modifiquen inodos.
+  \item Una cache de bloques.
+  \item Funciones que reserven bloques e inodos.
+  \item Funciones que escriban datos en bloques.
+  \item Funciones que modifiquen inodos.
 \end{itemize}
 
 La función central, que será la de escribir, tiene la siguiente pinta.
@@ -305,10 +305,10 @@ uint64_t fs_write(fs_info* info, fs_file* file,
 Veamos como interviene cada punto que nombramos antes en esta función.
 
 \begin{itemize}
-  \item una cache de bloques: cuando queremos escribir un bloque, lo cargamos en la caché, lo escribimos, lo marcamos como "sucio" y lo descargamos, todas estas son funciones que deberán ser implementadas por la cache de bloques,
-  \item funciones que reserven bloques e inodos: si el archivo no tiene más espacio disponible, debemos llamar a la función ext2\_request\_block, que se ocupa de reservar un bloque nuevo y actualizar todas las estructuras correspondientes,
-  \item funciones que escriban datos en bloques: la función fs\_write en si,
-  \item funciones que modifiquen inodos: la función fs\_write en si modifica inplace al inodo (actualizando por ejemplo el tamaño), pero también otras son necesarios otros procedimientos que serán utilizadas por funciones que creen y borren archivos.
+  \item Una cache de bloques: cuando queremos escribir un bloque, lo cargamos en la caché, lo escribimos, lo marcamos como sucio y lo descargamos, todas estas son funciones que deberán ser implementadas por la cache de bloques.
+  \item Funciones que reserven bloques e inodos: si el archivo no tiene más espacio disponible, debemos llamar a la función ext2\_request\_block, que se ocupa de reservar un bloque nuevo y actualizar todas las estructuras correspondientes.
+  \item Funciones que escriban datos en bloques: la función fs\_write en si.
+  \item Funciones que modifiquen inodos: la función fs\_write en si modifica in place al inodo (actualizando por ejemplo el tamaño), pero también otras son necesarios otros procedimientos que serán utilizadas por funciones que creen y borren archivos.
 \end{itemize}
 
 
@@ -329,9 +329,9 @@ Pueden pasar 3 cosas:
 2. Entra la información en los bloques que tenemos actualmente, pero el EOF se ve modificado, esto debe verse reflejado en el tamaño del archivo, que se guarda en el inodo.
 3. La información no entra en los bloques asociados al archivo y debemos pedir más.
 
-Es importante recordar que cierta información puede verse modificada (en particular el superbloque o la tabla de descriptores de grupos) si cambia la cantidad de bloques libres, entonces debemos marcar nuestras copias en la cache como /dirty/ para que sus cambios sean commiteados más tarde.
+Es importante recordar que cierta información puede verse modificada (en particular el superbloque o la tabla de descriptores de grupos) si cambia la cantidad de bloques libres, entonces debemos marcar nuestras copias en la cache como \emph{dirty} para que sus cambios sean commiteados más tarde.
 
-Cuando write encuentra que debe seguir escribiendo pero no tiene más bloques para hacerlo, llama a ext2\_request\_block, que se ocupa de poner un bloque para que write pueda seguir escribiendo sin hacer ningun tipo de trabajo extra.
+Cuando write encuentra que debe seguir escribiendo pero no tiene más bloques para hacerlo, llama a ext2\_request\_block, que se ocupa de poner un bloque para que write pueda seguir escribiendo sin hacer ningún tipo de trabajo extra.
 
 \begin{lstlisting}[style=customc]
 uint32_t ext2_request_block(fs_info* info, fs_file* file)
@@ -339,9 +339,9 @@ uint32_t ext2_request_block(fs_info* info, fs_file* file)
 
 Se ocupa de calcular cuantos bloques son necesarios para brindar un bloque de datos (dado que por la estructura de ext2 pueden llegar a ser necesarios más de uno) para ello llama a ext2\_needed\_blocks.
 
-Luego chequea si el archivo tiene suficientes bloques preasignados y en caso contrario llama a ext2\_balloc para que le asigne bloques al archivo.
+Luego chequea si el archivo tiene suficientes bloques pre asignados y en caso contrario llama a ext2\_balloc para que le asigne bloques al archivo.
 
-Luego actualiza el inodo y asigna los bloques, armando correctamente la estructura de arbol del inodo de ext2, de tal manera de dejarle el bloque colocado de manera correcta a write para que pueda seguir escribiendo; para esto se utiliza la función ext2\_assign\_blocks.
+Luego actualiza el inodo y asigna los bloques, armando correctamente la estructura de árbol del inodo de ext2, de tal manera de dejarle el bloque colocado de manera correcta a write para que pueda seguir escribiendo; para esto se utiliza la función ext2\_assign\_blocks.
 
 
 \begin{lstlisting}[style=customc]
@@ -355,22 +355,22 @@ Cuenta cuantos bloques reales necesito para devolver un bloque real de datos.
 uint32_t ext2_balloc(fs_info* info, fs_file* file)
 \end{lstlisting}
 
-Intenta alocar una constante fija de bloques para el archivo dado. La constante esta dada por PREALLOC\_BLOCK\_COUNT. Se podria usar tambien la constante que viene dada en el superbloque, pero es opcional.
+Intenta alocar una constante fija de bloques para el archivo dado. La constante esta dada por PREALLOC\_BLOCK\_COUNT. Se podría usar también la constante que viene dada en el superbloque, pero es opcional.
 
-El algoritmo es simple  e intenta minimizar la fragmentacion externa: intenta alocar desde el ultimo bloque utilizado por el archivo en adelante. Si no encuentra en el grupo actual, sigue con los grupos siguientes.
+El algoritmo es simple  e intenta minimizar la fragmentación externa: intenta alocar desde el ultimo bloque utilizado por el archivo en adelante. Si no encuentra en el grupo actual, sigue con los grupos siguientes.
 
-En caso de que el ultimo bloque del archivo sea el 0 (o sea, no tiene bloques asignados hasta ahora, por ejemplo, si el archivo estaba vacio) entonces se empezará a buscar desde el primer grupo.
+En caso de que el ultimo bloque del archivo sea el 0 (o sea, no tiene bloques asignados hasta ahora, por ejemplo, si el archivo estaba vacío) entonces se empezará a buscar desde el primer grupo.
 
 Para llevar esto a cabo, se debe cargar el block usage bitmap de cada grupo de bloques y usar la funcion bitmap\_search\_zeros que busca n (en este caso PREALLOC\_BLOCK\_COUNT) bits en 0 juntos y devuelve el offset en el que se encuentran.
 
-En caso de tener exito, los reserva usando la funcion ext2\_set\_resvd\_blocks.
+En caso de tener éxito, los reserva usando la función ext2\_set\_resvd\_blocks.
 
 
 \begin{lstlisting}[style=customc]
 uint32_t ext2_assign_blocks(fs_info* info, fs_file* file)
 \end{lstlisting}
 
-Arma la estructura de arbol del inodo como corresponda para expandir el tamaño efectivo del archivo en 1 bloque. Para esto, tiene que eventualmente escribir nuevos bloques indirectos simples, dobles o triples.
+Arma la estructura de árbol del inodo como corresponda para expandir el tamaño efectivo del archivo en 1 bloque. Para esto, tiene que eventualmente escribir nuevos bloques indirectos simples, dobles o triples.
 
 Esta es definitivamente la función más compleja del driver de ext2 (junto con ext2\_unassign\_blocks que es prácticamente igual), sin embargo la idea es muy simple.
 
@@ -383,26 +383,26 @@ uint32_t ext2_set_resvd_inodes(fs_info* info, uint32_t from, uint32_t count, boo
 
 Estas funciones, muy similares, se ocupan de reservar/liberar bloques/inodos en el filesystem. Para eso, debe cargar el usage bitmap que corresponda y setear o limpiar los bits que correspondan, si se quiere reservar o liberar, respectivamente. 
 
-El cuarto parametro indica si lo que se quiere hacer es reservar o desreservar. Si es true se reserva y si es false se libera.
+El cuarto parámetro indica si lo que se quiere hacer es reservar o marcar como no reservado. Si es true se reserva y si es false se libera.
 
 \begin{lstlisting}[style=customc] 
 uint32_t ext2_get_next_prealloc(fs_file* file)
 \end{lstlisting}
 
-Devuelve el proximo bloque de los prealocados por el archivo. Además actualiza la estructiura interna del archivo (dado que aumenta el puntero al primer bloque prealocado y disminuye la cantidad de bloques prealocados).
+Devuelve el próximo bloque de los pre alocados por el archivo. Además actualiza la estructura interna del archivo (dado que aumenta el puntero al primer bloque pre alocado y disminuye la cantidad de bloques pre alocados).
 
 
 \begin{lstlisting}[style=customc]
 uint32_t ext2_ialloc(fs_info* info, fs_dir* parent)
 \end{lstlisting}
 
-Busca, empezando por el grupo 0, algun inodo libre y devuelve su numero. 
+Busca, empezando por el grupo 0, algún inodo libre y devuelve su numero. 
 
 \begin{lstlisting}[style=customc]
 int64_t fs_create(fs_info* info, fs_dir* dir, dir_entry* file_info)
 \end{lstlisting}
 
-Crea un archivo en la carpeta pasada como parametro.
+Crea un archivo en la carpeta pasada como parámetro.
 
 Para eso, pide un inodo con ext2\_ialloc y escribe la direntry correspondiente en los bloques de datos del inodo del directorio. Hay dos casos: se puede meter en el medio de la carpeta (porque hay entradas obsoletas en el medio) o debe ponerse al final.
 
@@ -414,7 +414,7 @@ uint32_t ext2_unassign_block(fs_info* info, fs_file* file)
 
 Le desasigna el bloque actual al archivo, que debe ser el ultimo (a menos que se quiera romper todo, o se sepa lo que se hace, dado que se rompe el invariante del archivo y queda un "hueco" en el medio). 
 
-La lógica es la misma que la de ext2\_assign\_blocks, solo que se deben descargar aquellos indirectos que están cargados y no se necesitan más tambien.
+La lógica es la misma que la de ext2\_assign\_blocks, solo que se deben descargar aquellos indirectos que están cargados y no se necesitan más también.
 
 \begin{lstlisting}[style=customc]
 int64_t fs_truncate(fs_info* info, fs_file* file, uint64_t length)
@@ -430,7 +430,7 @@ int64_t fs_remove(fs_info* info, fs_dir* dir)
 
 Borra el archivo apuntado actualmente por el directorio.
 
-Hay que sobreescribir la entrada marcandola como invalida (seteando el numero de inodo en 0) y el deletion time acordemente. 
+Hay que sobreescribir la entrada marcándola como invalida (seteando el numero de inodo en 0) y el deletion time acordemente. 
 
 
 \begin{lstlisting}[style=customc]
@@ -452,11 +452,12 @@ Escribe el superbloque y la group descriptor table en todos los grupos que deben
 \begin{lstlisting}[style=customc]
 uint64_t ext2_new_group(fs_info* info);
 \end{lstlisting}
-Esta funcion se encarga de inaugurar nuevos grupos de bloques. Debe tener en cuenta no pasarse del tamano del drive y mantener el superbloque esparso si asi corresponde.
 
-De todos modos, esta funcion se usa en casos muy borde, cuando nos quedamos sin el espacio actual alocado en todo el filesystem. De hecho la especificacion ni siquiera es clara si esta operacion se puede hacer mientras el disco esta online y montado.
+Esta función se encarga de inaugurar nuevos grupos de bloques. Debe tener en cuenta no pasarse del tamaño del drive y mantener el superbloque esparso si así corresponde.
 
-Esta función no fue implementada, simplemente está su signatura, dado que no es una función estándar (linux no asegura que esto no rompa la partición) y sólo algunos sistemas operativos la implementan.
+De todos modos, esta función se usa en casos muy borde, cuando nos quedamos sin el espacio actual alocado en todo el filesystem. De hecho la especificación ni siquiera es clara si esta operación se puede hacer mientras el disco esta on-line y montado.
+
+Esta función no fue implementada, simplemente está su signatura, dado que no es una función estándar (Linux no asegura que esto no rompa la partición) y sólo algunos sistemas operativos la implementan.
 
 
 
@@ -522,10 +523,10 @@ void block_cache_set_dirty(block_cache *cache, void *block_ptr) {
 
 Las funciones son bastante autoexplicativas.
 
-La primera seatea el bloque en cuestión como no usado y lo escribe a disco. Además, libera el espacio en memoria que se pidió para guardar el bloque.
+La primera setea el bloque en cuestión como no usado y lo escribe a disco. Además, libera el espacio en memoria que se pidió para guardar el bloque.
 
-La segunda función marca un bloque como dirty. La única función de este procedimiento es permitir una optimización, dado que marcando bloques como dirty podemos ahorrarnos escrituras.
-Si al liberar un bloque, este esta marcado como dirty, debemos escribirlo a disco. En cambio, si no está marcado como dirty, nos podemos ahorrar esta escritura, dado que sabemos que no fue modificado.
+La segunda función marca un bloque como \emph{dirty}. La única función de este procedimiento es permitir una optimización, dado que marcando bloques como \emph{dirty} podemos ahorrarnos escrituras.
+Si al liberar un bloque, este esta marcado como \emph{dirty}, debemos escribirlo a disco. En cambio, si no está marcado como \emph{dirty}, nos podemos ahorrar esta escritura, dado que sabemos que no fue modificado.
 
 
 \subsection{Bitmap}
@@ -538,7 +539,7 @@ uint64_t clz8(int8_t byte)
 uint64_t ctz8(uint8_t byte)
 \end{lstlisting}
 
-Cuentan cantidad de ceros delante/detras del número (count leading/trailing zeros). Esperan un numero de 8 bits.
+Cuentan cantidad de ceros delante o detrás del número (count leading/trailing zeros) respectivamente. Esperan un numero de 8 bits.
 
 
 
@@ -548,7 +549,7 @@ uint64_t bitmap_count_zeros(const void* const _bitmap, uint64_t size, uint64_t o
 \end{lstlisting}
 
 Cuenta la cantidad de ceros consecutivos en el bitmap desde offset hasta size.
-Toma como parametros el bitmap en cuestion, el tamaño del bitmap en bits y desde que bit empezar a buscar ceros.
+Toma como parámetros el bitmap en cuestión, el tamaño del bitmap en bits y desde que bit empezar a buscar ceros.
 
 
 
@@ -556,9 +557,9 @@ Toma como parametros el bitmap en cuestion, el tamaño del bitmap en bits y desd
 uint64_t bitmap_search_zeros(const void* _bitmap, uint64_t size, uint64_t offset, uint64_t count)
 \end{lstlisting}
 
-Busca count cantidad de bits en cero en el bitmap. Recibe como parámetros el bitmap en cuestión, el tamano del bitmap en bits, desde que bit empezar a buscar ceros y cuántos ceros buscar.
+Busca count cantidad de bits en cero en el bitmap. Recibe como parámetros el bitmap en cuestión, el tamaño del bitmap en bits, desde que bit empezar a buscar ceros y cuántos ceros buscar.
 
-Devuelve la posición a partir de la cual encontro los bits. Si es size, significa que no encontro.
+Devuelve la posición a partir de la cual encontró los bits. Si es size, significa que no encontró.
 
 
 
@@ -594,7 +595,7 @@ void hdd_write(uint32_t lba_address, uint32_t sectors, void* buffer) {
 } 
 \end{lstlisting}
 
-De esta manera, cuando las funciones de ext2 y de la cache de bloques las llamen, van a pensar que estan leyendo de un disco, mientras que simplemente estamos escribiendo un archivo.
+De esta manera, cuando las funciones de ext2 y de la cache de bloques las llamen, van a pensar que están leyendo de un disco, mientras que simplemente estamos escribiendo un archivo.
 
 Así, podemos testear todas las funciones que implementamos con extrema facilidad. En particular, todas las funciones presentadas en este informe tienen tests de todo tipo: funcionales, de error, de carga, entre otros.
 

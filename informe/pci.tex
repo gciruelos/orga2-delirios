@@ -3,22 +3,22 @@
 \section{PCI}
 
 El bus PCI (Peripheral Component Interconnect) fue definido para establecer un bus local de alta performance y bajo costo que durara varias generaciones de productos.
-Combinando un camino transparente de mejoras desde 132 MB/s (32-bit a 33MHz) hasta 528 MB/s (64-bit a 66MHz) y ambientes de señalización tanto de 5V como de 3.3V, el bus PCI satiface las necesidades tanto de computadoras de escritorio de bajo costo como de servidores LAN de alto costo.
+Combinando un camino transparente de mejoras desde 132 MB/s (32-bit a 33MHz) hasta 528 MB/s (64-bit a 66MHz) y ambientes de señalización tanto de 5V como de 3.3V, el bus PCI satisface las necesidades tanto de computadoras de escritorio de bajo costo como de servidores LAN de alto costo.
 El bus PCI es independiente del procesador, lo cual permite una transición eficiente a futuros procesadores, además de poder usar diferentes arquitecturas de procesadores.
 
 Las desventajas del bus PCI es que es la limitada cantidad de cargas eléctricas que puede conducir. Un único bus PCI puede conducir un máximo de 10 cargas. (Recordemos que cuando contamos la cantidad de cargas de un bus, un conector cuenta como una carga y el dispositivo PCI cuenta como una carga, o a veces dos).
 
-Cualquier sistema operativo que se precie de serlo debe poder detectar que dispositivos están conectados a la computadora. Por esta razón, decidimos implementar un brevisimo identificador de dispositivos PCI.
+Cualquier sistema operativo que se precie de serlo debe poder detectar que dispositivos están conectados a la computadora. Por esta razón, decidimos implementar un brevísimo identificador de dispositivos PCI.
 
 Este es un paso vital para trabajar en el futuro con cualquier tipo de dispositivo, por ejemplo USB o Ethernet.
 
 \subsection{Cómo detectar dispositivos PCI}
 
-La especificación del bus PCI nos provee de un sistema de inicialización y configuración que puede realizarse totalmente por software via un espacio de direcciones de configuración separado para cada dispositivo en el bus PCI.
+La especificación del bus PCI nos provee de un sistema de inicialización y configuración que puede realizarse totalmente por software vía un espacio de direcciones de configuración separado para cada dispositivo en el bus PCI.
 
 Todos los dispositivos PCI, excepto el host bridge, están obligados a proveer 256 bytes de registros de configuración para ese propósito
 
-Los ciclos de configuración de los ciclos de lectura y escritura son usados para acceder al espacio de configuración de cada dispositivo objetivo. El objetivo es seleccionado enviando una señal ISDEL al host bridge. La señal ISDEL actua como la clásica señal "chip select". Durante la fase de direcciones del ciclo de configuración, el procesador puede direccionar alguno de los 64 registros de 32-bits dentro del espacio de configuración del dispositivo, simplemente escribiendo el número de registro requerido en las lineas de direcciones 2 a 7 (AD[7..2]) y las lineas de byte enable.
+Los ciclos de configuración de los ciclos de lectura y escritura son usados para acceder al espacio de configuración de cada dispositivo objetivo. El objetivo es seleccionado enviando una señal ISDEL al host bridge. La señal ISDEL actúa como la clásica señal \emph{chip select}. Durante la fase de direcciones del ciclo de configuración, el procesador puede direccionar alguno de los 64 registros de 32-bits dentro del espacio de configuración del dispositivo, simplemente escribiendo el número de registro requerido en las lineas de direcciones 2 a 7 (AD[7..2]) y las lineas de \emph{byte enable}.
 
 Los dispositivos PCI son inherentemente little endian, lo que significa que todos los campos de más de un byte tienen los valores menos significativos en las direcciones más bajas. Esto requiere que cuando se programa un procesador big-endian, como un Power PC, se hagan las operaciones apropiadas de byte-swapping al leer y escribir de la memoria del dispositivo. Sin embargo, como DeliriOS es un sistema operativo para arquitectura AMD64, que es little-endian, nada de esto nos interesará.
 
@@ -45,7 +45,7 @@ void pci_check_buses(void) {
 }
 \end{lstlisting}
 
-Primero nos fijamos cuantos PCI host controllers hay. En caso de que sea uno solo, chequeo el bus 0. En caso de que sean muchos, tengo que chequear la función de cada bus, porque si está UP quiere decir que ahi hay un host controller.
+Primero nos fijamos cuantos PCI host controllers hay. En caso de que sea uno solo, chequeo el bus 0. En caso de que sean muchos, tengo que chequear la función de cada bus, porque si está UP quiere decir que ahí hay un host controller.
 
 
 Pasemos a ver el resto de las funciones. 
@@ -102,7 +102,7 @@ static char * lookup_device(uint8_t class, uint8_t subclass){
 Esta función se ocupa de, dada una clase y una sublcase, devolver un string que contiene una descripción del dispositivo (en inglés). La tabla se encuentra al final de esta sección.
 
 
-Las funciones que siguen son todas las funciones que usa pci\_check\_buses para probar todas las combinaciones posibles de slot, funcion y bus.
+Las funciones que siguen son todas las funciones que usa pci\_check\_buses para probar todas las combinaciones posibles de slot, función y bus.
 
 \begin{lstlisting}[style=customcmucho]
 static void check_slot(uint8_t bus, uint8_t slot) {
@@ -135,7 +135,7 @@ static void check_bus(uint8_t bus) {
 
 La función que sigue es la más complicada de las tres, dado que es la última, por lo tanto la que hace todo el trabajo. Aquí es donde confirmamos la existencia del dispositivo, y donde imprimimos a salida estándar una descripción de él.
 
-En caso de que el dispositivo sea un disco IDE, lo inicializamos con la funcion ide\_init, que analizaremos en la siguiente sección.
+En caso de que el dispositivo sea un disco IDE, lo inicializamos con la función ide\_init, que analizaremos en la siguiente sección.
 
 \begin{lstlisting}[style=customcmucho]
 void check_function(uint16_t device) {
