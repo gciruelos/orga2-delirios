@@ -2,8 +2,7 @@ import statistics
 import matplotlib.pyplot as plt
 import matplotlib
 
-font = {'family' : 'normal',
-        'size'   : 22}
+font = {'size' : 22}
 
 matplotlib.rc('font', **font)
 f = open('tiempos/tiempos.txt', 'r')
@@ -63,19 +62,19 @@ for i, exp in enumerate(experimentos):
     plt.xlabel("Sistema Operativo")
     plt.savefig('tiempos/'+exp+'.pdf', bbox_inches='tight')
 
+delirios_write = [4,3,2,2,2,2,2,2,3,1,2,2,2,2,2,2,1,2,3,2,1]
+delirios = list(map(lambda r: r*122.0, delirios_write))
+linux = resultados['write']['linux']
+fix, ax = plt.subplots()
+plt.boxplot(
+	[delirios, linux],
+	labels=['delirios', 'linux'],
+	widths=[0.5, 0.5],
+)
+plt.title('write')
+plt.ylabel("Tiempo (us)")
+ax.set_ylim(0.0, 500.0)
+plt.xlabel("Sistema Operativo")
+plt.savefig('tiempos/delirios_linux.pdf', bbox_inches='tight')
 
 
-for i, exp in enumerate(experimentos):
-    delirios = list(map(lambda r: r/6.0, resultados[exp]['delirios']))
-    linux = resultados[exp]['linux']
-    fix, ax = plt.subplots()
-    plt.boxplot(
-            [delirios, linux],
-            labels=['delirios', 'linux'],
-            widths=0.5,
-    )
-    plt.title(exp)
-    plt.ylabel("Tiempo (us)")
-    ax.set_ylim(0.0, max(statistics.mean(delirios), statistics.mean(linux))*1.3)
-    plt.xlabel("Sistema Operativo")
-    plt.savefig('tiempos/'+exp+'_corregido.pdf', bbox_inches='tight')

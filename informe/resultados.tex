@@ -87,7 +87,7 @@ Veremos cómo corregir esto más adelante, pero primero veamos cómo testeamos. 
     \item[write] 104000 caract\'eres escritos en 2 archivos.
 \end{itemize}
 
-Todos los tests fueron corridos con el correspondiente flush a disco (fsync en Linux) de tal manera que sean efectivos.
+Todos los tests fueron corridos con el correspondiente flush a disco (fsync en Linux) de tal manera que sean efectivos. Además, con DeliriOS medimos el tiempo de acceso a disco, y se lo restamos a ambas mediciones. Es decir, los tiempos que veremos no son los tiempos totales, si no los tiempos totales sin los tiempos que el programa se pasa leyendo o escribiendo el disco.
 
 Veamos los resultados.
 
@@ -121,33 +121,22 @@ Veamos los resultados.
   \caption{}
 \end{figure}
 
-Sin embargo,...
+Como se ve, Linux es múcho más rápido en la mayoría de las funciones, excepto en remove. Creemos que la diferencia en remove se debe a que remove es una operación extremadamente barata, y Linux tiene muchas estructuras que debe mantener en cache (como índices), entonces actualizarlas le lleva la diferencia de tiempo que se ve.
+
+Sin embargo, como dijimos antes, los tests están lejos de ser exactos, dado que DeliriOS corre en \emph{userspace} pero Linux corre en \emph{kernelspace}. Pero, como se puede ver en \cite{Rajgarhia:2010:PEU:1774088.1774130}, un trabajo muy extenso que analiza diferencias de performance entre filesystems que corren en el \emph{kernelspace} vs. en el \emph{userspace}, la diferencia llega a ser de 600\% de pérdida de performance.
+
+Hacer la experimentación en DeliriOS nativo no es lo mejor para este tipo de experimentos, porque el clock con el que medimos los tiempos no tiene la granularidad suficiente.
+Esto se debe a que usamos el RTC (Real Time Clock), que tiene una granularidad máxima de 122 us.
+Por esta razón, solo corrimos el test más exigente, que es el de escritura. Este test, al igual que el anterior, es el tiempo de corrida total, menos el tiempo de acceso a disco.
+Veamos los resultados.
 
 \begin{figure}[H]
   \centering
-  \begin{minipage}[b]{0.49\textwidth}
-    \includegraphics[width=\textwidth]{tiempos/create_corregido.pdf}
-    \caption{}
-  \end{minipage}
-  \begin{minipage}[b]{0.49\textwidth}
-    \includegraphics[width=\textwidth]{tiempos/mkdir_corregido.pdf}
-    \caption{}
-  \end{minipage}
-\end{figure}
-\begin{figure}[H]
-  \begin{minipage}[b]{0.49\textwidth}
-    \includegraphics[width=\textwidth]{tiempos/read_corregido.pdf}
-    \caption{}
-  \end{minipage}
-  \begin{minipage}[b]{0.49\textwidth}
-    \includegraphics[width=\textwidth]{tiempos/remove_corregido.pdf}
-    \caption{}
-  \end{minipage}
-\end{figure}
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.5\textwidth]{tiempos/write_corregido.pdf}
-  \caption{}
+  \includegraphics[width=0.5\textwidth]{tiempos/delirios_linux.pdf}
+  \caption{Tiempos en DeliriOS vs. Linux en la prueba de escritura. Cada uno fue corrido en una máquina virtual de iguales condiciones, y a cada tiempo se le restó el tiempo de acceso a disco medido en cada caso. En el caso de Linux, medimos el tiempo de acceso a disco con delirios corriendo sobre Linux, como explicamos antes.}
 \end{figure}
 
+Las diferencias de performance ahora son mucho más razonables, dado que el código de DeliriOS es mucho más simple. Sin embargo, obviamente el código de Linux es mucho mas sofisticado, y funciona mejor seguramente en discos más llenos, por ejemplo, dado que sus algoritmos de reserva de bloques son mucho más complejos.
+
+La varianza de Delirios es mucho mas alta, dado que la granularidad es muy baja, por lo que explicamos anteriormente.
 
